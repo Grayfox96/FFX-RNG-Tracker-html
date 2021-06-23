@@ -4,7 +4,8 @@
 		<style type="text/css">
 			.container {
 				display: grid;
-				grid-template-columns: 3fr 2fr 1fr 2fr;
+				grid-template-columns: 1fr 1fr 1fr 1fr 100fr;
+				column-gap: 4px;
 			}
 		</style>
 		<script>
@@ -19,7 +20,7 @@
 			}
 			function csv_to_array(csv_text, delimiter = ',') {
 				let array = []
-				let rows = csv_text.slice(csv_text.indexOf("\n") + 1).split("\n");
+				let rows = csv_text.split("\n");
 				for (let i = 0; i < rows.length; i++) {
 					array.push(rows[i].split(','));
 				}
@@ -43,14 +44,26 @@
 				return array
 			}
 			function get_current_seed(rng_array){
+				damage_rolls = []
+				damage_rolls['auron'] = [document.forms.damage_rolls_form.elements[0].value, document.forms.damage_rolls_form.elements[2].value, document.forms.damage_rolls_form.elements[4].value]
+				damage_rolls['tidus'] = [document.forms.damage_rolls_form.elements[1].value, document.forms.damage_rolls_form.elements[3].value, document.forms.damage_rolls_form.elements[5].value]
+				for (let i = 0; i < 3;) {
+					if (damage_rolls['auron'][i] > 294) {
+						damage_rolls['auron'][i] = damage_rolls['auron'][i] / 2
+					}
+					if (damage_rolls['tidus'][i] > 141) {
+						damage_rolls['tidus'][i] = damage_rolls['tidus'][i] / 2
+					}
+					i++
+				}
 				for (let i = 0; i < rng_array.length; i++) {
 					// check damage rolls
-					if (rng_array[i][0] == document.forms.damage_rolls_form.elements[0].value && 
-						rng_array[i][1] == document.forms.damage_rolls_form.elements[1].value && 
-						rng_array[i][2] == document.forms.damage_rolls_form.elements[2].value && 
-						rng_array[i][3] == document.forms.damage_rolls_form.elements[3].value && 
-						rng_array[i][4] == document.forms.damage_rolls_form.elements[4].value && 
-						rng_array[i][5] == document.forms.damage_rolls_form.elements[5].value) {
+					if (rng_array[i][0] == damage_rolls['auron'][0] && 
+						rng_array[i][1] == damage_rolls['tidus'][0] && 
+						rng_array[i][2] == damage_rolls['auron'][1] && 
+						rng_array[i][3] == damage_rolls['tidus'][1] && 
+						rng_array[i][4] == damage_rolls['auron'][2] && 
+						rng_array[i][5] == damage_rolls['tidus'][2]) {
 						console.log('Seed found! Seed number ' + i)
 						current_seed = rng_array[i]
 						return current_seed
@@ -210,21 +223,37 @@
 		<title>ffx_seed_finder</title>
 	</head>
 	<body>
-		<form id="damage_rolls_form" onsubmit="print_raw_data(); return false">
-			<label for="auron1">Auron 1</label>
-			<input type="number" id="auron1" name="auron1" min="260" max="294">
-			<label for="tidus1">Tidus 1</label>
-			<input type="number" id="tidus1" name="tidus1" min="125" max="141">
-			<label for="auron2">Auron 2</label>
-			<input type="number" id="auron2" name="auron2" min="260" max="294">
-			<label for="tidus2">Tidus 2</label>
-			<input type="number" id="tidus2" name="tidus2" min="125" max="141">
-			<label for="auron3">Auron 3</label>
-			<input type="number" id="auron3" name="auron3" min="260" max="294">
-			<label for="tidus3">Tidus 3</label>
-			<input type="number" id="tidus3" name="tidus3" min="125" max="141">
-			<input type="submit" value="Submit">
-		</form>
+		<div style="display: grid; grid-template-columns: 10fr 1fr 10fr; max-height:20px">
+			<form id="damage_rolls_form" onsubmit="print_raw_data(); return false">
+				<label for="auron1">Auron 1</label>
+				<input type="number" id="auron1" name="auron1" min="260" max="588">
+				<label for="tidus1">Tidus 1</label>
+				<input type="number" id="tidus1" name="tidus1" min="125" max="282">
+				<label for="auron2">Auron 2</label>
+				<input type="number" id="auron2" name="auron2" min="260" max="588">
+				<label for="tidus2">Tidus 2</label>
+				<input type="number" id="tidus2" name="tidus2" min="125" max="282">
+				<label for="auron3">Auron 3</label>
+				<input type="number" id="auron3" name="auron3" min="260" max="588">
+				<label for="tidus3">Tidus 3</label>
+				<input type="number" id="tidus3" name="tidus3" min="125" max="282">
+				<input type="submit" value="Submit">
+			</form>
+			<button onclick="hide_raw_data()" id='raw_data_button' style="height:20px;width:120px">Hide raw data</button>
+			<script type="text/javascript">
+				function hide_raw_data() {
+					let raw_data = document.getElementById("raw_data");
+					let raw_data_button = document.getElementById("raw_data_button")
+					if (raw_data.style.display === "none") {
+						raw_data.style.display = "block";
+						raw_data_button.innerHTML = 'Hide raw data'
+					} else {
+						raw_data.style.display = "none";
+						raw_data_button.innerHTML = 'Show raw data'
+					}
+				}
+			</script>
+		</div>
 		<div class="container">
 			<div>
 				<pre id='raw_data'>Raw data goes here.</pre>
@@ -235,80 +264,69 @@
 			<div>
 				<pre id='conditions'>Conditions go here.</pre>
 			</div>
-			<div style="display: grid; grid-template-columns: 1fr 1fr; max-height:1px">
-				<input type="range" min="0" max="1" value="0" class="slider" id="Underwater Ruins"><label for="Underwater Ruins">Underwater Ruins</label>
-				<input type="range" min="0" max="4" value="0" class="slider" id="Besaid Lagoon"><label for="Besaid Lagoon">Besaid Lagoon</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Besaid"><label for="Besaid">Besaid</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Lord Ochu (Way In)"><label for="Lord Ochu (Way In)">Lord Ochu (Way In)</label>
-				<input type="range" min="0" max="6" value="0" class="slider" id="Kilika Woods (Way In)"><label for="Kilika Woods (Way In)">Kilika Woods (Way In)</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Lord Ochu (Way Out)"><label for="Lord Ochu (Way Out)">Lord Ochu (Way Out)</label>
-				<input type="range" min="0" max="6" value="0" class="slider" id="Kilika Woods (Way Out)"><label for="Kilika Woods (Way Out)">Kilika Woods (Way Out)</label>
-				<input type="range" min="0" max="6" value="0" class="slider" id="Miihen Screen 1"><label for="Miihen Screen 1">Miihen Screen 1</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="Miihen Screen 2/3"><label for="Miihen Screen 2/3">Miihen Screen 2/3</label>
-				<input type="range" min="0" max="8" value="0" class="slider" id="Old Road"><label for="Old Road">Old Road</label>
-				<input type="range" min="0" max="3" value="0" class="slider" id="Clasko Skip Screen"><label for="Clasko Skip Screen">Clasko Skip Screen</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="MRR - Valley"><label for="MRR - Valley">MRR - Valley</label>
-				<input type="range" min="0" max="3" value="0" class="slider" id="MRR - Precipice"><label for="MRR - Precipice">MRR - Precipice</label>
-				<input type="range" min="0" max="3" value="0" class="slider" id="Djose Highroad (Front Half)"><label for="Djose Highroad (Front Half)">Djose Highroad (Front Half)</label>
-				<input type="range" min="0" max="6" value="0" class="slider" id="Djose Highroad (Back Half)"><label for="Djose Highroad (Back Half)">Djose Highroad (Back Half)</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="Moonflow (South)"><label for="Moonflow (South)">Moonflow (South)</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="Moonflow (North)"><label for="Moonflow (North)">Moonflow (North)</label>
-				<input type="range" min="0" max="11" value="0" class="slider" id="Thunder Plains (South)"><label for="Thunder Plains (South)">Thunder Plains (South)</label>
-				<input type="range" min="0" max="11" value="0" class="slider" id="Thunder Plains (North)"><label for="Thunder Plains (North)">Thunder Plains (North)</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="Macalania Woods"><label for="Macalania Woods">Macalania Woods</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Lake Macalania"><label for="Lake Macalania">Lake Macalania</label>
-				<input type="range" min="0" max="2" value="0" class="slider" id="Guado Encounter"><label for="Guado Encounter">Guado Encounter</label>
-				<input type="range" min="0" max="4" value="0" class="slider" id="Crevasse"><label for="Crevasse">Crevasse</label>
-				<input type="range" min="0" max="10" value="0" class="slider" id="Bikanel (Pre Machina)"><label for="Bikanel (Pre Machina)">Bikanel (Pre Machina)</label>
-				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Post Machina)"><label for="Bikanel (Post Machina)">Bikanel (Post Machina)</label>
-				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Central)"><label for="Bikanel (Central)">Bikanel (Central)</label>
-				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Ruins)"><label for="Bikanel (Ruins)">Bikanel (Ruins)</label>
-				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Pre Sandragora)"><label for="Bikanel (Pre Sandragora)">Bikanel (Pre Sandragora)</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Sandragora 1 refight"><label for="Sandragora 1 refight">Sandragora 1 refight</label>
-				<input type="range" min="0" max="1" value="0" class="slider" id="Bikanel (Post Sandragora)"><label for="Bikanel (Post Sandragora)">Bikanel (Post Sandragora)</label>
-				<input type="range" min="0" max="4" value="0" class="slider" id="Via Purifico"><label for="Via Purifico">Via Purifico</label>
-				<input type="range" min="0" max="4" value="0" class="slider" id="Via Purifico Underwater"><label for="Via Purifico Underwater">Via Purifico Underwater</label>
-				<input type="range" min="0" max="6" value="0" class="slider" id="Highbridge"><label for="Highbridge">Highbridge</label>
-				<input type="range" min="0" max="15" value="0" class="slider" id="Calm Lands"><label for="Calm Lands">Calm Lands</label>
-				<input type="range" min="0" max="100" value="50" class="slider" id="Cave"><label for="Cave">Cave</label>
+			<div id='Sliders' style="display: grid; grid-template-columns: 1fr 1fr 100fr; max-height:1px; white-space: nowrap;">
+				<script type="text/javascript">
+					const sliders_array = {
+						'Underwater Ruins':				{min:0, default:1, max:1},
+						'Besaid Lagoon':				{min:0, default:2, max:4},
+						'Besaid':						{min:0, default:0, max:1},
+						'Lord Ochu (Way In)':			{min:0, default:0, max:1},
+						'Kilika Woods (Way In)':		{min:0, default:2, max:6},
+						'Lord Ochu (Way Out)':			{min:0, default:0, max:1},
+						'Kilika Woods (Way Out)':		{min:0, default:4, max:6},
+						'Miihen Screen 1':				{min:0, default:3, max:6},
+						'Miihen Screen 2/3':			{min:0, default:6, max:10},
+						'Old Road':						{min:0, default:3, max:8},
+						'Clasko Skip Screen':			{min:0, default:2, max:3},
+						'MRR - Valley':					{min:0, default:5, max:10},
+						'MRR - Precipice':				{min:0, default:1, max:3},
+						'Djose Highroad (Front Half)':	{min:0, default:1, max:3},
+						'Djose Highroad (Back Half)':	{min:0, default:4, max:6},
+						'Moonflow (South)':				{min:0, default:5, max:10},
+						'Moonflow (North)':				{min:0, default:5, max:10},
+						'Thunder Plains (South)':		{min:0, default:7, max:11},
+						'Thunder Plains (North)':		{min:0, default:7, max:11},
+						'Macalania Woods':				{min:0, default:7, max:10},
+						'Lake Macalania':				{min:0, default:1, max:1},
+						'Guado Encounter':				{min:0, default:0, max:2},
+						'Crevasse':						{min:0, default:2, max:5},
+						'Bikanel (Pre Machina)':		{min:0, default:3, max:5},
+						'Bikanel (Post Machina)':		{min:0, default:1, max:5},
+						'Bikanel (Central)':			{min:0, default:3, max:5},
+						'Bikanel (Ruins)':				{min:0, default:0, max:5},
+						'Bikanel (Pre Sandragora)':		{min:0, default:1, max:2},
+						'Sandragora 1 refight':			{min:0, default:0, max:1},
+						'Bikanel (Post Sandragora)':	{min:0, default:0, max:2},
+						'Via Purifico':					{min:0, default:2, max:4},
+						'Via Purifico Underwater':		{min:0, default:1, max:3},
+						'Highbridge':					{min:0, default:2, max:5},
+						'Calm Lands':					{min:0, default:10, max:12},
+						'Cave':							{min:0, default:50, max:100}
+					}
+					const parent = document.getElementById("Sliders")
+					for (let i = 0; i < Object.keys(sliders_array).length;) {
+						let key = Object.keys(sliders_array)[i];
+						sliders_array[key].pre = document.createElement('pre');
+						sliders_array[key].pre.id = key + ' Counter';
+						sliders_array[key].pre.innerHTML = sliders_array[key].default;
+						sliders_array[key].slider = document.createElement('input');
+						sliders_array[key].slider.type = 'range';
+						sliders_array[key].slider.class = 'slider';
+						sliders_array[key].slider.id = key;
+						sliders_array[key].slider.min = sliders_array[key].min;
+						sliders_array[key].slider.value = sliders_array[key].default;
+						sliders_array[key].slider.max = sliders_array[key].max;
+						sliders_array[key].slider.oninput = function () {get_data(current_seed);sliders_array[key].pre.innerHTML = this.value;}
+						sliders_array[key].label = document.createElement('label');
+						sliders_array[key].label.for = key;
+						sliders_array[key].label.innerHTML = key;
+						parent.appendChild(sliders_array[key].pre);
+						parent.appendChild(sliders_array[key].slider);
+						parent.appendChild(sliders_array[key].label);
+						i++;
+					}
+				</script>
 			</div>
 		</div>
-		<script type="text/javascript">
-			document.getElementById("Underwater Ruins").oninput = function () {get_data(current_seed)}
-			document.getElementById("Besaid Lagoon").oninput = function () {get_data(current_seed)}
-			document.getElementById("Besaid").oninput = function () {get_data(current_seed)}
-			document.getElementById("Lord Ochu (Way In)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Kilika Woods (Way In)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Lord Ochu (Way Out)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Kilika Woods (Way Out)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Miihen Screen 1").oninput = function () {get_data(current_seed)}
-			document.getElementById("Miihen Screen 2/3").oninput = function () {get_data(current_seed)}
-			document.getElementById("Old Road").oninput = function () {get_data(current_seed)}
-			document.getElementById("Clasko Skip Screen").oninput = function () {get_data(current_seed)}
-			document.getElementById("MRR - Valley").oninput = function () {get_data(current_seed)}
-			document.getElementById("MRR - Precipice").oninput = function () {get_data(current_seed)}
-			document.getElementById("Djose Highroad (Front Half)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Djose Highroad (Back Half)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Moonflow (South)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Moonflow (North)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Thunder Plains (South)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Thunder Plains (North)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Macalania Woods").oninput = function () {get_data(current_seed)}
-			document.getElementById("Lake Macalania").oninput = function () {get_data(current_seed)}
-			document.getElementById("Guado Encounter").oninput = function () {get_data(current_seed)}
-			document.getElementById("Crevasse").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Pre Machina)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Post Machina)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Central)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Ruins)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Pre Sandragora)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Sandragora 1 refight").oninput = function () {get_data(current_seed)}
-			document.getElementById("Bikanel (Post Sandragora)").oninput = function () {get_data(current_seed)}
-			document.getElementById("Via Purifico").oninput = function () {get_data(current_seed)}
-			document.getElementById("Via Purifico Underwater").oninput = function () {get_data(current_seed)}
-			document.getElementById("Highbridge").oninput = function () {get_data(current_seed)}
-			document.getElementById("Calm Lands").oninput = function () {get_data(current_seed)}
-			document.getElementById("Cave").oninput = function () {get_data(current_seed)}
-		</script>
 	</body>
 </html>
