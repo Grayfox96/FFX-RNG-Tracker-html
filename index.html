@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+	<head>
+		<script>
+			async function get_csv_file(file) {
+				response = await fetch(file);
+				text = await response.text()
+				return text
+			}
+			function csv_to_array(csv_text, delimiter = ',') {
+				let array = []
+				// array for the headers
+				const headers = csv_text.slice(0, csv_text.indexOf("\n")).split(delimiter);
+				// array for the rows
+				const rows = csv_text.slice(csv_text.indexOf("\n") + 1).split("\n");
+				for (let i = 0; i < rows.length; i++) {
+					array.push(rows[i].split(','));
+				}
+				return array
+			}
+			function get_current_seed(rng_array){
+				for (let i = 0; i < rng_array.length; i++) {
+					// check damage rolls
+					if (rng_array[i][0] == document.forms.damage_rolls_form.elements[0].value && 
+						rng_array[i][1] == document.forms.damage_rolls_form.elements[1].value && 
+						rng_array[i][2] == document.forms.damage_rolls_form.elements[2].value && 
+						rng_array[i][3] == document.forms.damage_rolls_form.elements[3].value && 
+						rng_array[i][4] == document.forms.damage_rolls_form.elements[4].value && 
+						rng_array[i][5] == document.forms.damage_rolls_form.elements[5].value) {
+						console.log('Seed found! Seed number ' + i)
+						return rng_array[i]
+					}
+				}
+				console.log('Seed not found!')
+			}
+			function get_condition(raw_rng, initiative=false) {
+				let condition_rng = raw_rng & 255;
+				console.log(condition_rng)
+				let condition = 2;
+				let output = '';
+				if (initiative) {
+					condition_rng = condition_rng - 32 - 1;
+				}
+				if (condition_rng < 255 - 32) {
+					if (condition_rng < 32) {
+						condition = 1;
+					} else {
+						condition = 0;
+					}
+				}
+				if (condition == 1) {
+					output = 'Preemptive';
+				} else if (condition == 2) {
+					output = 'Ambush';
+				}
+				return output;
+			}
+			async function get_raw_data() {
+				let raw_data_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv'
+				let current_seed = get_current_seed(csv_to_array(await get_csv_file(raw_data_file)));
+				let raw_data = '';
+				for (let i = 6; i < current_seed.length; i++) {
+					let encounter = i - 5
+					raw_data = raw_data.concat(encounter + ' ' + get_condition(current_seed[i]) + '\n')
+				}
+				return raw_data
+			}
+			async function print_raw_data() {
+				document.getElementById('raw_data').innerHTML = await get_raw_data();
+			}
+		</script>
+		<title>ffx_seed_finder</title>
+	</head>
+	<body>
+		<form id="damage_rolls_form" onsubmit="print_raw_data(); return false">
+			<label for="auron1">Auron 1</label>
+			<input type="number" id="auron1" name="auron1" min="260" max="294">
+			<label for="tidus1">Tidus 1</label>
+			<input type="number" id="tidus1" name="tidus1" min="125" max="141">
+			<label for="auron2">Auron 2</label>
+			<input type="number" id="auron2" name="auron2" min="260" max="294">
+			<label for="tidus2">Tidus 2</label>
+			<input type="number" id="tidus2" name="tidus2" min="125" max="141">
+			<label for="auron3">Auron 3</label>
+			<input type="number" id="auron3" name="auron3" min="260" max="294">
+			<label for="tidus3">Tidus 3</label>
+			<input type="number" id="tidus3" name="tidus3" min="125" max="141">
+			<input type="submit" value="Submit">
+		</form>
+		<pre id='raw_data'>Seed data goes here.</pre>
+	</body>
+</html>
