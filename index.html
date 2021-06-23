@@ -1,7 +1,17 @@
 <!doctype html>
 <html>
 	<head>
+		<style type="text/css">
+			.container {
+				display: grid;
+				grid-template-columns: 3fr 2fr 1fr 2fr;
+			}
+		</style>
 		<script>
+			const raw_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv'
+			const formations_file = 'https://gist.githubusercontent.com/Grayfox96/fe50cabfd264caeefdabe34507b86bce/raw/38a0aa30f58b6746bf4bcceefd7872d168095b34/ffxhd-formations.csv'
+			var current_seed = []
+			var formations_array = []
 			async function get_csv_file(file) {
 				response = await fetch(file);
 				text = await response.text()
@@ -9,13 +19,27 @@
 			}
 			function csv_to_array(csv_text, delimiter = ',') {
 				let array = []
-				// array for the headers
-				const headers = csv_text.slice(0, csv_text.indexOf("\n")).split(delimiter);
-				// array for the rows
-				const rows = csv_text.slice(csv_text.indexOf("\n") + 1).split("\n");
+				let rows = csv_text.slice(csv_text.indexOf("\n") + 1).split("\n");
 				for (let i = 0; i < rows.length; i++) {
 					array.push(rows[i].split(','));
 				}
+				return array
+			}
+			function get_formations_array(formations_text, delimiter=',') {
+				let rows = formations_text.split("\n");
+				let array = []
+				for (let i = 0; i < rows.length; i++) {
+					let row = rows[i].split(',')
+					for (let j = 0; j < row.length;) {
+						if (j == 0) {
+							array[row[0]] = []
+						} else {
+							array[row[0]].push(row[j])
+						}
+						j++
+					}
+				}
+				formations_array = array
 				return array
 			}
 			function get_current_seed(rng_array){
@@ -28,14 +52,14 @@
 						rng_array[i][4] == document.forms.damage_rolls_form.elements[4].value && 
 						rng_array[i][5] == document.forms.damage_rolls_form.elements[5].value) {
 						console.log('Seed found! Seed number ' + i)
-						return rng_array[i]
+						current_seed = rng_array[i]
+						return current_seed
 					}
 				}
 				console.log('Seed not found!')
 			}
 			function get_condition(raw_rng, initiative=false) {
 				let condition_rng = raw_rng & 255;
-				console.log(condition_rng)
 				let condition = 2;
 				let output = '';
 				if (initiative) {
@@ -48,25 +72,139 @@
 						condition = 0;
 					}
 				}
-				if (condition == 1) {
+				if (condition == 0) {
+					output = '          ';
+				} else if (condition == 1) {
 					output = 'Preemptive';
 				} else if (condition == 2) {
-					output = 'Ambush';
+					output = 'Ambush    ';
 				}
 				return output;
 			}
-			async function get_raw_data() {
-				let raw_data_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv'
-				let current_seed = get_current_seed(csv_to_array(await get_csv_file(raw_data_file)));
+			function get_formation(raw_rng, zone) {
+				let formation_number = raw_rng % formations_array[zone].length;
+				return formations_array[zone][formation_number];
+			}
+			async function get_raw_data(seed) {
 				let raw_data = '';
-				for (let i = 6; i < current_seed.length; i++) {
+				for (let i = 6; i < 506; i++) {
 					let encounter = i - 5
-					raw_data = raw_data.concat(encounter + ' ' + get_condition(current_seed[i]) + '\n')
+					raw_data = raw_data.concat(encounter + ' | Forced Encounter: ' + get_condition(seed[i]) + ' | Random Encounter: ' + get_condition(seed[i + 1]) + '\n')
 				}
 				return raw_data
 			}
 			async function print_raw_data() {
-				document.getElementById('raw_data').innerHTML = await get_raw_data();
+				document.getElementById('raw_data').innerHTML = await get_raw_data(get_current_seed(csv_to_array(await get_csv_file(raw_rng_file))));
+				get_formations_array(await get_csv_file(formations_file))
+				get_data(current_seed);
+			}
+			var rng_position = 0
+			var encounter_counter = 0
+			var full_data = ''
+			var conditions = ''
+			function add_forced_encounters(encounters, initiative=false) {
+				for (let i = 0; i < encounters.length; i++) {
+					encounter_counter = encounter_counter + 1
+					let condition = get_condition(current_seed[rng_position + 6], initiative)
+					full_data = full_data + encounter_counter + ': ' + encounters[i] + '\n'
+					conditions = conditions + condition + '\n'
+					rng_position = rng_position + 1
+				}
+			}
+			function add_optional_forced_encounters(encounter_name, initiative=false) {
+				let encounters = document.getElementById(encounter_name).value
+				for (let i = 0; i < encounters; i++) {
+					encounter_counter = encounter_counter + 1
+					let condition = get_condition(current_seed[rng_position + 6], initiative)
+					full_data = full_data + encounter_counter + ': ' + encounter_name + ' [' + (i + 1) + ']' + '\n'
+					conditions = conditions + condition + '\n'
+					rng_position = rng_position + 1
+				}
+			}
+			function add_random_encounters(zone, initiative=false) {
+				let encounters = document.getElementById(zone).value
+				for (let i = 0; i < encounters; i++) {
+					encounter_counter = encounter_counter + 1
+					let formation = get_formation(current_seed[rng_position + 6], zone)
+					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
+					full_data = full_data + encounter_counter + ': ' + zone + ' [' + (i + 1) + ']\n   `-' + formation + '\n'
+					conditions = conditions + '\n' + condition + '\n'
+					rng_position = rng_position + 2
+				}
+			}
+			function add_cave_encounters(initiative=false) {
+				let encounters = document.getElementById('Cave').value
+				for (let i = 0; i < encounters; i++) {
+					encounter_counter = encounter_counter + 1
+					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)')
+					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)')
+					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
+					full_data = full_data + encounter_counter + ': ' + 'Cave' + ' [' + (i + 1) + ']\n   `-' + formation_white_zone + '/' + formation_green_zone + '\n'
+					conditions = conditions + '\n' + condition + '\n'
+					rng_position = rng_position + 2
+				}
+			}
+			function get_data(seed) {
+				add_forced_encounters(['Sinscales', 'Ammes', 'Tanker', 'Sahagins', 'Geosgaeno', 'Klikk 1', 'Klikk 2'])
+				add_random_encounters("Underwater Ruins", initiative=false)
+				add_forced_encounters(['Piranhas', 'Tros'])
+				add_random_encounters('Besaid Lagoon')
+				add_forced_encounters(['Dingo/Condor', 'Water Flan', 'Kimahri', 'Garuda 1', 'Garuda 2', 'Condor/Dingo/Water Flan'])
+				add_random_encounters('Besaid')
+				add_forced_encounters(['Sin Fin', 'Echuilles', 'Lancet tutorial'])
+				add_optional_forced_encounters('Lord Ochu (Way In)')
+				add_random_encounters('Kilika Woods (Way In)')
+				add_forced_encounters(['Geneaux'])
+				add_optional_forced_encounters('Lord Ochu (Way Out)')
+				add_random_encounters('Kilika Woods (Way Out)')
+				add_forced_encounters(['Machina 1', 'Machina 2', 'Machina 3', 'Oblitzerator', 'Sahagin Chiefs', 'Vouivre', 'Garuda', 'Pierce tutorial'])
+				add_random_encounters('Miihen Screen 1')
+				add_random_encounters('Miihen Screen 2/3')
+				add_forced_encounters(['Chocobo Eater'])
+				add_random_encounters('Old Road')
+				add_random_encounters('Clasko Skip Screen')
+				add_random_encounters('MRR - Valley')
+				add_random_encounters('MRR - Precipice')
+				add_forced_encounters(['Sinspawn Gui 1', 'Sinspawn Gui 2'])
+				add_random_encounters('Djose Highroad (Front Half)', initiative=true)
+				add_random_encounters('Djose Highroad (Back Half)', initiative=true)
+				add_random_encounters('Moonflow (South)', initiative=true)
+				add_forced_encounters(['Extractor', 'Rikku tutorial'])
+				add_random_encounters('Moonflow (North)', initiative=true)
+				add_random_encounters('Thunder Plains (South)', initiative=true)
+				add_random_encounters('Thunder Plains (North)', initiative=true)
+				add_random_encounters('Macalania Woods')
+				add_forced_encounters(['Spherimorph'])
+				add_random_encounters('Lake Macalania')
+				add_forced_encounters(['Crawler', 'Seymour'])
+				add_optional_forced_encounters('Guado Encounter')
+				add_random_encounters('Crevasse')
+				add_forced_encounters(['Wendigo', 'Zu'])
+				add_random_encounters('Bikanel (Pre Machina)', initiative=true)
+				add_forced_encounters(['Machina Steal tutorial'])
+				add_random_encounters('Bikanel (Post Machina)', initiative=true)
+				add_random_encounters('Bikanel (Central)', initiative=true)
+				add_random_encounters('Bikanel (Ruins)', initiative=true)
+				add_random_encounters('Bikanel (Pre Sandragora)', initiative=true)
+				add_forced_encounters(['Sandragora 1'])
+				add_optional_forced_encounters('Sandragora 1 refight', initiative=true)
+				add_random_encounters('Bikanel (Post Sandragora)', initiative=true)
+				add_forced_encounters(['Sandragora 2', 'Guado + 3 Bombs', 'Guado + 2 Dual Horn 1', 'Guado + 2 Chimera', 'Evrae', 'Bevelle Guards 1', 'Bevelle Guards 2', 'Bevelle Guards 3', 'Bevelle Guards 4', 'Bevelle Guards 5'])
+				add_random_encounters('Via Purifico', initiative=true)
+				add_forced_encounters(['Isaaru Grothia', 'Isaaru Pterya', 'Isaaru Spathi'])
+				add_random_encounters('Via Purifico Underwater')
+				add_forced_encounters(['Evrae Altana'])
+				add_random_encounters('Highbridge', initiative=true)
+				add_forced_encounters(['Seymour Natus'])
+				add_random_encounters('Calm Lands', initiative=true)
+				add_forced_encounters(['Defender X'])
+				add_cave_encounters(initiative=true)
+				document.getElementById('full_data').innerHTML = full_data
+				document.getElementById('conditions').innerHTML = conditions
+				rng_position = 0
+				encounter_counter = 0
+				full_data = ''
+				conditions = ''
 			}
 		</script>
 		<title>ffx_seed_finder</title>
@@ -87,6 +225,90 @@
 			<input type="number" id="tidus3" name="tidus3" min="125" max="141">
 			<input type="submit" value="Submit">
 		</form>
-		<pre id='raw_data'>Seed data goes here.</pre>
+		<div class="container">
+			<div>
+				<pre id='raw_data'>Raw data goes here.</pre>
+			</div>
+			<div>
+				<pre id='full_data'>Data goes here.</pre>
+			</div>
+			<div>
+				<pre id='conditions'>Conditions go here.</pre>
+			</div>
+			<div style="display: grid; grid-template-columns: 1fr 1fr; max-height:1px">
+				<input type="range" min="0" max="1" value="0" class="slider" id="Underwater Ruins"><label for="Underwater Ruins">Underwater Ruins</label>
+				<input type="range" min="0" max="4" value="0" class="slider" id="Besaid Lagoon"><label for="Besaid Lagoon">Besaid Lagoon</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Besaid"><label for="Besaid">Besaid</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Lord Ochu (Way In)"><label for="Lord Ochu (Way In)">Lord Ochu (Way In)</label>
+				<input type="range" min="0" max="6" value="0" class="slider" id="Kilika Woods (Way In)"><label for="Kilika Woods (Way In)">Kilika Woods (Way In)</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Lord Ochu (Way Out)"><label for="Lord Ochu (Way Out)">Lord Ochu (Way Out)</label>
+				<input type="range" min="0" max="6" value="0" class="slider" id="Kilika Woods (Way Out)"><label for="Kilika Woods (Way Out)">Kilika Woods (Way Out)</label>
+				<input type="range" min="0" max="6" value="0" class="slider" id="Miihen Screen 1"><label for="Miihen Screen 1">Miihen Screen 1</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="Miihen Screen 2/3"><label for="Miihen Screen 2/3">Miihen Screen 2/3</label>
+				<input type="range" min="0" max="8" value="0" class="slider" id="Old Road"><label for="Old Road">Old Road</label>
+				<input type="range" min="0" max="3" value="0" class="slider" id="Clasko Skip Screen"><label for="Clasko Skip Screen">Clasko Skip Screen</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="MRR - Valley"><label for="MRR - Valley">MRR - Valley</label>
+				<input type="range" min="0" max="3" value="0" class="slider" id="MRR - Precipice"><label for="MRR - Precipice">MRR - Precipice</label>
+				<input type="range" min="0" max="3" value="0" class="slider" id="Djose Highroad (Front Half)"><label for="Djose Highroad (Front Half)">Djose Highroad (Front Half)</label>
+				<input type="range" min="0" max="6" value="0" class="slider" id="Djose Highroad (Back Half)"><label for="Djose Highroad (Back Half)">Djose Highroad (Back Half)</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="Moonflow (South)"><label for="Moonflow (South)">Moonflow (South)</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="Moonflow (North)"><label for="Moonflow (North)">Moonflow (North)</label>
+				<input type="range" min="0" max="11" value="0" class="slider" id="Thunder Plains (South)"><label for="Thunder Plains (South)">Thunder Plains (South)</label>
+				<input type="range" min="0" max="11" value="0" class="slider" id="Thunder Plains (North)"><label for="Thunder Plains (North)">Thunder Plains (North)</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="Macalania Woods"><label for="Macalania Woods">Macalania Woods</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Lake Macalania"><label for="Lake Macalania">Lake Macalania</label>
+				<input type="range" min="0" max="2" value="0" class="slider" id="Guado Encounter"><label for="Guado Encounter">Guado Encounter</label>
+				<input type="range" min="0" max="4" value="0" class="slider" id="Crevasse"><label for="Crevasse">Crevasse</label>
+				<input type="range" min="0" max="10" value="0" class="slider" id="Bikanel (Pre Machina)"><label for="Bikanel (Pre Machina)">Bikanel (Pre Machina)</label>
+				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Post Machina)"><label for="Bikanel (Post Machina)">Bikanel (Post Machina)</label>
+				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Central)"><label for="Bikanel (Central)">Bikanel (Central)</label>
+				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Ruins)"><label for="Bikanel (Ruins)">Bikanel (Ruins)</label>
+				<input type="range" min="0" max="5" value="0" class="slider" id="Bikanel (Pre Sandragora)"><label for="Bikanel (Pre Sandragora)">Bikanel (Pre Sandragora)</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Sandragora 1 refight"><label for="Sandragora 1 refight">Sandragora 1 refight</label>
+				<input type="range" min="0" max="1" value="0" class="slider" id="Bikanel (Post Sandragora)"><label for="Bikanel (Post Sandragora)">Bikanel (Post Sandragora)</label>
+				<input type="range" min="0" max="4" value="0" class="slider" id="Via Purifico"><label for="Via Purifico">Via Purifico</label>
+				<input type="range" min="0" max="4" value="0" class="slider" id="Via Purifico Underwater"><label for="Via Purifico Underwater">Via Purifico Underwater</label>
+				<input type="range" min="0" max="6" value="0" class="slider" id="Highbridge"><label for="Highbridge">Highbridge</label>
+				<input type="range" min="0" max="15" value="0" class="slider" id="Calm Lands"><label for="Calm Lands">Calm Lands</label>
+				<input type="range" min="0" max="100" value="50" class="slider" id="Cave"><label for="Cave">Cave</label>
+			</div>
+		</div>
+		<script type="text/javascript">
+			document.getElementById("Underwater Ruins").oninput = function () {get_data(current_seed)}
+			document.getElementById("Besaid Lagoon").oninput = function () {get_data(current_seed)}
+			document.getElementById("Besaid").oninput = function () {get_data(current_seed)}
+			document.getElementById("Lord Ochu (Way In)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Kilika Woods (Way In)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Lord Ochu (Way Out)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Kilika Woods (Way Out)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Miihen Screen 1").oninput = function () {get_data(current_seed)}
+			document.getElementById("Miihen Screen 2/3").oninput = function () {get_data(current_seed)}
+			document.getElementById("Old Road").oninput = function () {get_data(current_seed)}
+			document.getElementById("Clasko Skip Screen").oninput = function () {get_data(current_seed)}
+			document.getElementById("MRR - Valley").oninput = function () {get_data(current_seed)}
+			document.getElementById("MRR - Precipice").oninput = function () {get_data(current_seed)}
+			document.getElementById("Djose Highroad (Front Half)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Djose Highroad (Back Half)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Moonflow (South)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Moonflow (North)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Thunder Plains (South)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Thunder Plains (North)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Macalania Woods").oninput = function () {get_data(current_seed)}
+			document.getElementById("Lake Macalania").oninput = function () {get_data(current_seed)}
+			document.getElementById("Guado Encounter").oninput = function () {get_data(current_seed)}
+			document.getElementById("Crevasse").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Pre Machina)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Post Machina)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Central)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Ruins)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Pre Sandragora)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Sandragora 1 refight").oninput = function () {get_data(current_seed)}
+			document.getElementById("Bikanel (Post Sandragora)").oninput = function () {get_data(current_seed)}
+			document.getElementById("Via Purifico").oninput = function () {get_data(current_seed)}
+			document.getElementById("Via Purifico Underwater").oninput = function () {get_data(current_seed)}
+			document.getElementById("Highbridge").oninput = function () {get_data(current_seed)}
+			document.getElementById("Calm Lands").oninput = function () {get_data(current_seed)}
+			document.getElementById("Cave").oninput = function () {get_data(current_seed)}
+		</script>
 	</body>
 </html>
