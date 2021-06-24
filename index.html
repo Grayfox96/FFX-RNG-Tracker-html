@@ -1,10 +1,10 @@
 <!doctype html>
 <html>
 	<head>
-		<style type="text/css">
+		<style type='text/css'>
 			.container {
 				display: grid;
-				grid-template-columns: 1fr 1fr 1fr 1fr 100fr;
+				grid-template-columns: 1fr 1fr 1fr 100fr;
 				column-gap: 4px;
 			}
 		</style>
@@ -20,14 +20,14 @@
 			}
 			function csv_to_array(csv_text, delimiter = ',') {
 				let array = []
-				let rows = csv_text.split("\n");
+				let rows = csv_text.split('\n');
 				for (let i = 0; i < rows.length; i++) {
 					array.push(rows[i].split(','));
 				}
 				return array
 			}
 			function get_formations_array(formations_text, delimiter=',') {
-				let rows = formations_text.split("\n");
+				let rows = formations_text.split('\n');
 				let array = []
 				for (let i = 0; i < rows.length; i++) {
 					let row = rows[i].split(',')
@@ -70,6 +70,8 @@
 					}
 				}
 				console.log('Seed not found!')
+				document.getElementById('raw_data').innerHTML = 'Seed not found!'
+				document.getElementById('full_data').innerHTML = 'Seed not found!'
 			}
 			function get_condition(raw_rng, initiative=false) {
 				let condition_rng = raw_rng & 255;
@@ -86,11 +88,11 @@
 					}
 				}
 				if (condition == 0) {
-					output = '          ';
+					output = '';
 				} else if (condition == 1) {
 					output = 'Preemptive';
 				} else if (condition == 2) {
-					output = 'Ambush    ';
+					output = 'Ambush';
 				}
 				return output;
 			}
@@ -98,29 +100,29 @@
 				let formation_number = raw_rng % formations_array[zone].length;
 				return formations_array[zone][formation_number];
 			}
-			async function get_raw_data(seed) {
+			function get_raw_data(seed) {
 				let raw_data = '';
 				for (let i = 6; i < 506; i++) {
-					let encounter = i - 5
-					raw_data = raw_data.concat(encounter + ' | Forced Encounter: ' + get_condition(seed[i]) + ' | Random Encounter: ' + get_condition(seed[i + 1]) + '\n')
+					let encounter = (i - 5).toString().padStart(3, ' ');
+					raw_data = raw_data.concat(`${encounter} | Forced Encounter: ${get_condition(seed[i]).padEnd(10, ' ')} | Random Encounter: ${get_condition(seed[i + 1]).padEnd(10, ' ')}|\n`);
 				}
-				return raw_data
+				return raw_data;
 			}
 			async function print_raw_data() {
-				document.getElementById('raw_data').innerHTML = await get_raw_data(get_current_seed(csv_to_array(await get_csv_file(raw_rng_file))));
+				document.getElementById('raw_data').innerHTML = get_raw_data(get_current_seed(csv_to_array(await get_csv_file(raw_rng_file))));
 				get_formations_array(await get_csv_file(formations_file))
 				get_data(current_seed);
+				let viewport_height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 			}
 			var rng_position = 0
 			var encounter_counter = 0
 			var full_data = ''
-			var conditions = ''
 			function add_forced_encounters(encounters, initiative=false) {
 				for (let i = 0; i < encounters.length; i++) {
 					encounter_counter = encounter_counter + 1
 					let condition = get_condition(current_seed[rng_position + 6], initiative)
-					full_data = full_data + encounter_counter + ': ' + encounters[i] + '\n'
-					conditions = conditions + condition + '\n'
+					// 'Nidhogg+Dark Element x2/Magic Urn' needs a padding of 1 space, so 34 total characters
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(34, ' ')}${condition}\n`
 					rng_position = rng_position + 1
 				}
 			}
@@ -129,8 +131,8 @@
 				for (let i = 0; i < encounters; i++) {
 					encounter_counter = encounter_counter + 1
 					let condition = get_condition(current_seed[rng_position + 6], initiative)
-					full_data = full_data + encounter_counter + ': ' + encounter_name + ' [' + (i + 1) + ']' + '\n'
-					conditions = conditions + condition + '\n'
+					encounter_name = `${encounter_name} [${i + 1}]`
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(34, ' ')}${condition}\n`
 					rng_position = rng_position + 1
 				}
 			}
@@ -138,10 +140,10 @@
 				let encounters = document.getElementById(zone).value
 				for (let i = 0; i < encounters; i++) {
 					encounter_counter = encounter_counter + 1
-					let formation = get_formation(current_seed[rng_position + 6], zone)
+					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(34, ' ')
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
-					full_data = full_data + encounter_counter + ': ' + zone + ' [' + (i + 1) + ']\n   `-' + formation + '\n'
-					conditions = conditions + '\n' + condition + '\n'
+					let encounter_number = `${zone} [${i + 1}]`.padEnd(34, ' ')
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
 					rng_position = rng_position + 2
 				}
 			}
@@ -151,15 +153,16 @@
 					encounter_counter = encounter_counter + 1
 					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)')
 					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)')
+					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(34, ' ')
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
-					full_data = full_data + encounter_counter + ': ' + 'Cave' + ' [' + (i + 1) + ']\n   `-' + formation_white_zone + '/' + formation_green_zone + '\n'
-					conditions = conditions + '\n' + condition + '\n'
+					let encounter_number = `Cave [${i + 1}]`
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
 					rng_position = rng_position + 2
 				}
 			}
 			function get_data(seed) {
 				add_forced_encounters(['Sinscales', 'Ammes', 'Tanker', 'Sahagins', 'Geosgaeno', 'Klikk 1', 'Klikk 2'])
-				add_random_encounters("Underwater Ruins", initiative=false)
+				add_random_encounters('Underwater Ruins')
 				add_forced_encounters(['Piranhas', 'Tros'])
 				add_random_encounters('Besaid Lagoon')
 				add_forced_encounters(['Dingo/Condor', 'Water Flan', 'Kimahri', 'Garuda 1', 'Garuda 2', 'Condor/Dingo/Water Flan'])
@@ -199,10 +202,11 @@
 				add_random_encounters('Bikanel (Central)', initiative=true)
 				add_random_encounters('Bikanel (Ruins)', initiative=true)
 				add_random_encounters('Bikanel (Pre Sandragora)', initiative=true)
-				add_forced_encounters(['Sandragora 1'])
+				add_forced_encounters(['Sandragora 1'], initiative=true)
 				add_optional_forced_encounters('Sandragora 1 refight', initiative=true)
 				add_random_encounters('Bikanel (Post Sandragora)', initiative=true)
-				add_forced_encounters(['Sandragora 2', 'Guado + 3 Bombs', 'Guado + 2 Dual Horn 1', 'Guado + 2 Chimera', 'Evrae', 'Bevelle Guards 1', 'Bevelle Guards 2', 'Bevelle Guards 3', 'Bevelle Guards 4', 'Bevelle Guards 5'])
+				add_forced_encounters(['Sandragora 2', 'Guado + 3 Bombs', 'Guado + 2 Dual Horn 1', 'Guado + 2 Chimera', 
+					'Evrae', 'Bevelle Guards 1', 'Bevelle Guards 2', 'Bevelle Guards 3', 'Bevelle Guards 4', 'Bevelle Guards 5'], initiative=true)
 				add_random_encounters('Via Purifico', initiative=true)
 				add_forced_encounters(['Isaaru Grothia', 'Isaaru Pterya', 'Isaaru Spathi'])
 				add_random_encounters('Via Purifico Underwater')
@@ -212,60 +216,58 @@
 				add_random_encounters('Calm Lands', initiative=true)
 				add_forced_encounters(['Defender X'])
 				add_cave_encounters(initiative=true)
+				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">Preemptive</span>')
+				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">Ambush</span>')
+				full_data = full_data.replace(/Ghost/g, '<mark>Ghost</mark>')
 				document.getElementById('full_data').innerHTML = full_data
-				document.getElementById('conditions').innerHTML = conditions
 				rng_position = 0
 				encounter_counter = 0
 				full_data = ''
-				conditions = ''
 			}
 		</script>
 		<title>ffx_seed_finder</title>
 	</head>
 	<body>
-		<div style="display: grid; grid-template-columns: 10fr 1fr 10fr; max-height:20px">
-			<form id="damage_rolls_form" onsubmit="print_raw_data(); return false">
-				<label for="auron1">Auron 1</label>
-				<input type="number" id="auron1" name="auron1" min="260" max="588">
-				<label for="tidus1">Tidus 1</label>
-				<input type="number" id="tidus1" name="tidus1" min="125" max="282">
-				<label for="auron2">Auron 2</label>
-				<input type="number" id="auron2" name="auron2" min="260" max="588">
-				<label for="tidus2">Tidus 2</label>
-				<input type="number" id="tidus2" name="tidus2" min="125" max="282">
-				<label for="auron3">Auron 3</label>
-				<input type="number" id="auron3" name="auron3" min="260" max="588">
-				<label for="tidus3">Tidus 3</label>
-				<input type="number" id="tidus3" name="tidus3" min="125" max="282">
-				<input type="submit" value="Submit">
-			</form>
-			<button onclick="hide_raw_data()" id='raw_data_button' style="height:20px;width:120px">Hide raw data</button>
-			<script type="text/javascript">
+		<div style='display: grid; grid-template-columns: 1fr 100fr; column-gap: 4px;'>
+			<button onclick='hide_raw_data()' id='raw_data_button' style='height:20px;width:120px'>Hide raw data</button>
+			<script type='text/javascript'>
 				function hide_raw_data() {
-					let raw_data = document.getElementById("raw_data");
-					let raw_data_button = document.getElementById("raw_data_button")
-					if (raw_data.style.display === "none") {
-						raw_data.style.display = "block";
+					let raw_data = document.getElementById('raw_data');
+					let raw_data_button = document.getElementById('raw_data_button')
+					if (raw_data.style.display === 'none') {
+						raw_data.style.display = 'block';
 						raw_data_button.innerHTML = 'Hide raw data'
 					} else {
-						raw_data.style.display = "none";
+						raw_data.style.display = 'none';
 						raw_data_button.innerHTML = 'Show raw data'
 					}
 				}
 			</script>
+			<form id='damage_rolls_form' onsubmit='print_raw_data(); return false'>
+				<label for='auron1'>Auron 1</label>
+				<input type='number' id='auron1' name='auron1' min='260' max='588'>
+				<label for='tidus1'>Tidus 1</label>
+				<input type='number' id='tidus1' name='tidus1' min='125' max='282'>
+				<label for='auron2'>Auron 2</label>
+				<input type='number' id='auron2' name='auron2' min='260' max='588'>
+				<label for='tidus2'>Tidus 2</label>
+				<input type='number' id='tidus2' name='tidus2' min='125' max='282'>
+				<label for='auron3'>Auron 3</label>
+				<input type='number' id='auron3' name='auron3' min='260' max='588'>
+				<label for='tidus3'>Tidus 3</label>
+				<input type='number' id='tidus3' name='tidus3' min='125' max='282'>
+				<input type='submit' value='Submit'>
+			</form>
 		</div>
-		<div class="container">
+		<div class='container'>
 			<div>
 				<pre id='raw_data'>Raw data goes here.</pre>
 			</div>
 			<div>
 				<pre id='full_data'>Data goes here.</pre>
 			</div>
-			<div>
-				<pre id='conditions'>Conditions go here.</pre>
-			</div>
-			<div id='Sliders' style="display: grid; grid-template-columns: 1fr 1fr 100fr; max-height:1px; white-space: nowrap;">
-				<script type="text/javascript">
+			<div id='Sliders'>
+				<script type='text/javascript'>
 					const sliders_array = {
 						'Underwater Ruins':				{min:0, default:1, max:1},
 						'Besaid Lagoon':				{min:0, default:2, max:4},
@@ -303,26 +305,28 @@
 						'Calm Lands':					{min:0, default:10, max:12},
 						'Cave':							{min:0, default:50, max:100}
 					}
-					const parent = document.getElementById("Sliders")
+					const div = document.getElementById('Sliders');
 					for (let i = 0; i < Object.keys(sliders_array).length;) {
 						let key = Object.keys(sliders_array)[i];
-						sliders_array[key].pre = document.createElement('pre');
-						sliders_array[key].pre.id = key + ' Counter';
-						sliders_array[key].pre.innerHTML = sliders_array[key].default;
+						sliders_array[key].parent = document.createElement('div');
+						sliders_array[key].parent.id = key + ' Container';
+						sliders_array[key].parent.style = 'display: grid; grid-template-columns: 1fr 1fr 100fr;height:30px;';
+						sliders_array[key].counter = document.createElement('pre');
+						sliders_array[key].counter.id = key + ' Counter';
+						sliders_array[key].counter.innerHTML = sliders_array[key].default;
 						sliders_array[key].slider = document.createElement('input');
 						sliders_array[key].slider.type = 'range';
-						sliders_array[key].slider.class = 'slider';
 						sliders_array[key].slider.id = key;
 						sliders_array[key].slider.min = sliders_array[key].min;
 						sliders_array[key].slider.value = sliders_array[key].default;
 						sliders_array[key].slider.max = sliders_array[key].max;
-						sliders_array[key].slider.oninput = function () {get_data(current_seed);sliders_array[key].pre.innerHTML = this.value;}
-						sliders_array[key].label = document.createElement('label');
-						sliders_array[key].label.for = key;
+						sliders_array[key].slider.oninput = function () {get_data(current_seed); sliders_array[key].counter.innerHTML = this.value;};
+						sliders_array[key].label = document.createElement('pre');
 						sliders_array[key].label.innerHTML = key;
-						parent.appendChild(sliders_array[key].pre);
-						parent.appendChild(sliders_array[key].slider);
-						parent.appendChild(sliders_array[key].label);
+						div.appendChild(sliders_array[key].parent);
+						sliders_array[key].parent.appendChild(sliders_array[key].counter);
+						sliders_array[key].parent.appendChild(sliders_array[key].slider);
+						sliders_array[key].parent.appendChild(sliders_array[key].label);
 						i++;
 					}
 				</script>
