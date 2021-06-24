@@ -21,42 +21,40 @@
 			function csv_to_array(csv_text, delimiter = ',') {
 				let array = []
 				let rows = csv_text.split('\n');
-				for (let i = 0; i < rows.length; i++) {
+				for (let i in rows) {
 					array.push(rows[i].split(','));
 				}
 				return array
 			}
 			function get_formations_array(formations_text, delimiter=',') {
-				let rows = formations_text.split('\n');
 				let array = []
-				for (let i = 0; i < rows.length; i++) {
+				let rows = formations_text.split('\n');
+				for (let i in rows) {
 					let row = rows[i].split(',')
-					for (let j = 0; j < row.length;) {
+					for (let j in row) {
 						if (j == 0) {
 							array[row[0]] = []
 						} else {
 							array[row[0]].push(row[j])
 						}
-						j++
 					}
 				}
-				formations_array = array
 				return array
 			}
 			function get_current_seed(rng_array){
 				damage_rolls = []
-				damage_rolls['auron'] = [document.forms.damage_rolls_form.elements[0].value, document.forms.damage_rolls_form.elements[2].value, document.forms.damage_rolls_form.elements[4].value]
-				damage_rolls['tidus'] = [document.forms.damage_rolls_form.elements[1].value, document.forms.damage_rolls_form.elements[3].value, document.forms.damage_rolls_form.elements[5].value]
-				for (let i = 0; i < 3;) {
+				let form = document.forms.damage_rolls_form
+				damage_rolls['auron'] = [form.elements[0].value, form.elements[2].value, form.elements[4].value]
+				damage_rolls['tidus'] = [form.elements[1].value, form.elements[3].value, form.elements[5].value]
+				for (let i = 0; i < 3; i++) {
 					if (damage_rolls['auron'][i] > 294) {
 						damage_rolls['auron'][i] = damage_rolls['auron'][i] / 2
 					}
 					if (damage_rolls['tidus'][i] > 141) {
 						damage_rolls['tidus'][i] = damage_rolls['tidus'][i] / 2
 					}
-					i++
 				}
-				for (let i = 0; i < rng_array.length; i++) {
+				for (let i in rng_array) {
 					// check damage rolls
 					if (rng_array[i][0] == damage_rolls['auron'][0] && 
 						rng_array[i][1] == damage_rolls['tidus'][0] && 
@@ -65,8 +63,7 @@
 						rng_array[i][4] == damage_rolls['auron'][2] && 
 						rng_array[i][5] == damage_rolls['tidus'][2]) {
 						console.log('Seed found! Seed number ' + i)
-						current_seed = rng_array[i]
-						return current_seed
+						return rng_array[i]
 					}
 				}
 				console.log('Seed not found!')
@@ -104,25 +101,27 @@
 				let raw_data = '';
 				for (let i = 6; i < 506; i++) {
 					let encounter = (i - 5).toString().padStart(3, ' ');
-					raw_data = raw_data.concat(`${encounter} | Forced Encounter: ${get_condition(seed[i]).padEnd(10, ' ')} | Random Encounter: ${get_condition(seed[i + 1]).padEnd(10, ' ')}|\n`);
+					raw_data = `${raw_data}${encounter} | Forced Encounter: ${get_condition(seed[i]).padEnd(10, ' ')} | Random Encounter: ${get_condition(seed[i + 1]).padEnd(10, ' ')}|\n`;
 				}
 				return raw_data;
 			}
-			async function print_raw_data() {
-				document.getElementById('raw_data').innerHTML = get_raw_data(get_current_seed(csv_to_array(await get_csv_file(raw_rng_file))));
-				get_formations_array(await get_csv_file(formations_file))
+			async function print_data() {
+				current_seed = get_current_seed(csv_to_array(await get_csv_file(raw_rng_file)));
+				formations_array = get_formations_array(await get_csv_file(formations_file))
+				document.getElementById('raw_data').innerHTML = get_raw_data(current_seed);
 				get_data(current_seed);
-				let viewport_height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+				document.getElementById('sliders').style.display = 'block';
 			}
 			var rng_position = 0
 			var encounter_counter = 0
 			var full_data = ''
+			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' needs a padding of 1 space, so 37 total characters
+			var padding = 37
 			function add_forced_encounters(encounters, initiative=false) {
-				for (let i = 0; i < encounters.length; i++) {
+				for (let i in encounters) {
 					encounter_counter = encounter_counter + 1
 					let condition = get_condition(current_seed[rng_position + 6], initiative)
-					// 'Nidhogg+Dark Element x2/Magic Urn' needs a padding of 1 space, so 34 total characters
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(34, ' ')}${condition}\n`
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')}${condition}\n`
 					rng_position = rng_position + 1
 				}
 			}
@@ -132,7 +131,7 @@
 					encounter_counter = encounter_counter + 1
 					let condition = get_condition(current_seed[rng_position + 6], initiative)
 					encounter_name = `${encounter_name} [${i + 1}]`
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(34, ' ')}${condition}\n`
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')}${condition}\n`
 					rng_position = rng_position + 1
 				}
 			}
@@ -140,9 +139,9 @@
 				let encounters = document.getElementById(zone).value
 				for (let i = 0; i < encounters; i++) {
 					encounter_counter = encounter_counter + 1
-					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(34, ' ')
+					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(padding, ' ')
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
-					let encounter_number = `${zone} [${i + 1}]`.padEnd(34, ' ')
+					let encounter_number = `${zone} [${i + 1}]`
 					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
 					rng_position = rng_position + 2
 				}
@@ -153,7 +152,7 @@
 					encounter_counter = encounter_counter + 1
 					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)')
 					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)')
-					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(34, ' ')
+					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(padding, ' ')
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
 					let encounter_number = `Cave [${i + 1}]`
 					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
@@ -216,9 +215,10 @@
 				add_random_encounters('Calm Lands', initiative=true)
 				add_forced_encounters(['Defender X'])
 				add_cave_encounters(initiative=true)
-				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">Preemptive</span>')
-				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">Ambush</span>')
-				full_data = full_data.replace(/Ghost/g, '<mark>Ghost</mark>')
+				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>')
+				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>')
+				full_data = full_data.replace(/Ghost/g, '<mark>$&</mark>')
+				full_data = full_data.replace(/Funguar/g, '<mark>$&</mark>')
 				document.getElementById('full_data').innerHTML = full_data
 				rng_position = 0
 				encounter_counter = 0
@@ -243,7 +243,7 @@
 					}
 				}
 			</script>
-			<form id='damage_rolls_form' onsubmit='print_raw_data(); return false'>
+			<form id='damage_rolls_form' onsubmit='print_data(); return false'>
 				<label for='auron1'>Auron 1</label>
 				<input type='number' id='auron1' name='auron1' min='260' max='588'>
 				<label for='tidus1'>Tidus 1</label>
@@ -266,7 +266,7 @@
 			<div>
 				<pre id='full_data'>Data goes here.</pre>
 			</div>
-			<div id='Sliders'>
+			<div id='sliders' style="position: sticky; bottom: 20px; grid-row-start: 2; grid-column-start: 3; display: none;">
 				<script type='text/javascript'>
 					const sliders_array = {
 						'Underwater Ruins':				{min:0, default:1, max:1},
@@ -303,31 +303,29 @@
 						'Via Purifico Underwater':		{min:0, default:1, max:3},
 						'Highbridge':					{min:0, default:2, max:5},
 						'Calm Lands':					{min:0, default:10, max:12},
-						'Cave':							{min:0, default:50, max:100}
+						'Cave':							{min:0, default:50, max:99}
 					}
-					const div = document.getElementById('Sliders');
-					for (let i = 0; i < Object.keys(sliders_array).length;) {
-						let key = Object.keys(sliders_array)[i];
+					const div = document.getElementById('sliders');
+					for (let key in sliders_array) {
 						sliders_array[key].parent = document.createElement('div');
 						sliders_array[key].parent.id = key + ' Container';
-						sliders_array[key].parent.style = 'display: grid; grid-template-columns: 1fr 1fr 100fr;height:30px;';
+						sliders_array[key].parent.style = 'display: grid; grid-template-columns: 1fr 1fr 100fr; height:24px;';
 						sliders_array[key].counter = document.createElement('pre');
 						sliders_array[key].counter.id = key + ' Counter';
-						sliders_array[key].counter.innerHTML = sliders_array[key].default;
+						sliders_array[key].counter.innerHTML = `${sliders_array[key].default}`.padStart(2, ' ');
 						sliders_array[key].slider = document.createElement('input');
 						sliders_array[key].slider.type = 'range';
 						sliders_array[key].slider.id = key;
 						sliders_array[key].slider.min = sliders_array[key].min;
 						sliders_array[key].slider.value = sliders_array[key].default;
 						sliders_array[key].slider.max = sliders_array[key].max;
-						sliders_array[key].slider.oninput = function () {get_data(current_seed); sliders_array[key].counter.innerHTML = this.value;};
+						sliders_array[key].slider.oninput = function () {get_data(current_seed); sliders_array[key].counter.innerHTML = this.value.padStart(2, ' ');};
 						sliders_array[key].label = document.createElement('pre');
 						sliders_array[key].label.innerHTML = key;
 						div.appendChild(sliders_array[key].parent);
 						sliders_array[key].parent.appendChild(sliders_array[key].counter);
 						sliders_array[key].parent.appendChild(sliders_array[key].slider);
 						sliders_array[key].parent.appendChild(sliders_array[key].label);
-						i++;
 					}
 				</script>
 			</div>
