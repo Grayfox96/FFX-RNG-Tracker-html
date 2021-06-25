@@ -13,6 +13,13 @@
 			const formations_file = 'https://gist.githubusercontent.com/Grayfox96/fe50cabfd264caeefdabe34507b86bce/raw/38a0aa30f58b6746bf4bcceefd7872d168095b34/ffxhd-formations.csv'
 			var current_seed = []
 			var formations_array = []
+			const url_params = new URLSearchParams(window.location.search);
+			const damage_rolls = []
+			var rng_position = 0
+			var encounter_counter = 0
+			var full_data = ''
+			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' needs a padding of 1 space, so 37 total characters
+			const padding = 37
 			async function get_csv_file(file) {
 				response = await fetch(file);
 				text = await response.text()
@@ -42,26 +49,32 @@
 				return array
 			}
 			function get_current_seed(rng_array){
-				damage_rolls = []
-				let form = document.forms.damage_rolls_form
-				damage_rolls['auron'] = [form.elements[0].value, form.elements[2].value, form.elements[4].value]
-				damage_rolls['tidus'] = [form.elements[1].value, form.elements[3].value, form.elements[5].value]
-				for (let i = 0; i < 3; i++) {
-					if (damage_rolls['auron'][i] > 294) {
-						damage_rolls['auron'][i] = damage_rolls['auron'][i] / 2
+				if (url_params.has('auron1') &&
+					url_params.has('tidus1') &&
+					url_params.has('auron2') &&
+					url_params.has('tidus2') &&
+					url_params.has('auron3') &&
+					url_params.has('tidus3')) {
+					for (let [key, value] of url_params.entries()) {
+					damage_rolls[key] = Number(value)
 					}
-					if (damage_rolls['tidus'][i] > 141) {
-						damage_rolls['tidus'][i] = damage_rolls['tidus'][i] / 2
+				}
+				for (let i = 1; i < 4; i++) {
+					if (damage_rolls['auron' + i] > 294) {
+						damage_rolls['auron' + i] = damage_rolls['auron' + i] / 2
+					}
+					if (damage_rolls['tidus' + i] > 141) {
+						damage_rolls['tidus' + i] = damage_rolls['tidus' + i] / 2
 					}
 				}
 				for (let i in rng_array) {
 					// check damage rolls
-					if (rng_array[i][0] == damage_rolls['auron'][0] && 
-						rng_array[i][1] == damage_rolls['tidus'][0] && 
-						rng_array[i][2] == damage_rolls['auron'][1] && 
-						rng_array[i][3] == damage_rolls['tidus'][1] && 
-						rng_array[i][4] == damage_rolls['auron'][2] && 
-						rng_array[i][5] == damage_rolls['tidus'][2]) {
+					if (rng_array[i][0] == damage_rolls['auron1'] && 
+						rng_array[i][1] == damage_rolls['tidus1'] && 
+						rng_array[i][2] == damage_rolls['auron2'] && 
+						rng_array[i][3] == damage_rolls['tidus2'] && 
+						rng_array[i][4] == damage_rolls['auron3'] && 
+						rng_array[i][5] == damage_rolls['tidus3']) {
 						console.log('Seed found! Seed number ' + i)
 						return rng_array[i]
 					}
@@ -112,11 +125,6 @@
 				get_data(current_seed);
 				document.getElementById('sliders').style.display = 'block';
 			}
-			var rng_position = 0
-			var encounter_counter = 0
-			var full_data = ''
-			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' needs a padding of 1 space, so 37 total characters
-			var padding = 37
 			function add_forced_encounters(encounters, initiative=false) {
 				for (let i in encounters) {
 					encounter_counter = encounter_counter + 1
@@ -217,8 +225,7 @@
 				add_cave_encounters(initiative=true)
 				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>')
 				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>')
-				full_data = full_data.replace(/Ghost/g, '<mark>$&</mark>')
-				full_data = full_data.replace(/Funguar/g, '<mark>$&</mark>')
+				full_data = full_data.replace(/Ghost|Funguar|Bomb/g, '<mark>$&</mark>')
 				document.getElementById('full_data').innerHTML = full_data
 				rng_position = 0
 				encounter_counter = 0
@@ -229,21 +236,27 @@
 	</head>
 	<body>
 		<div style='display: grid; grid-template-columns: 1fr 100fr; column-gap: 4px;'>
-			<button onclick='hide_raw_data()' id='raw_data_button' style='height:20px;width:120px'>Hide raw data</button>
-			<script type='text/javascript'>
-				function hide_raw_data() {
-					let raw_data = document.getElementById('raw_data');
-					let raw_data_button = document.getElementById('raw_data_button')
-					if (raw_data.style.display === 'none') {
-						raw_data.style.display = 'block';
-						raw_data_button.innerHTML = 'Hide raw data'
-					} else {
-						raw_data.style.display = 'none';
-						raw_data_button.innerHTML = 'Show raw data'
+			<div>
+				<button onclick='reset()' id='reset_button' style='height:20px;width:120px'>Reset</button>
+				<button onclick='hide_raw_data()' id='raw_data_button' style='height:20px;width:120px'>Hide raw data</button>
+				<script type='text/javascript'>
+					function hide_raw_data() {
+						let raw_data = document.getElementById('raw_data');
+						let raw_data_button = document.getElementById('raw_data_button')
+						if (raw_data.style.display === 'none') {
+							raw_data.style.display = 'block';
+							raw_data_button.innerHTML = 'Hide raw data'
+						} else {
+							raw_data.style.display = 'none';
+							raw_data_button.innerHTML = 'Show raw data'
+						}
 					}
-				}
-			</script>
-			<form id='damage_rolls_form' onsubmit='print_data(); return false'>
+					function reset() {
+						window.location = window.location.pathname;
+					}
+				</script>
+			</div>
+			<form id='damage_rolls_form' onsubmit='print_data();'>
 				<label for='auron1'>Auron 1</label>
 				<input type='number' id='auron1' name='auron1' min='260' max='588'>
 				<label for='tidus1'>Tidus 1</label>
@@ -277,7 +290,7 @@
 						'Lord Ochu (Way Out)':			{min:0, default:0, max:1},
 						'Kilika Woods (Way Out)':		{min:0, default:4, max:6},
 						'Miihen Screen 1':				{min:0, default:3, max:6},
-						'Miihen Screen 2/3':			{min:0, default:6, max:10},
+						'Miihen Screen 2/3':			{min:0, default:8, max:12},
 						'Old Road':						{min:0, default:3, max:8},
 						'Clasko Skip Screen':			{min:0, default:2, max:3},
 						'MRR - Valley':					{min:0, default:5, max:10},
@@ -326,6 +339,15 @@
 						sliders_array[key].parent.appendChild(sliders_array[key].counter);
 						sliders_array[key].parent.appendChild(sliders_array[key].slider);
 						sliders_array[key].parent.appendChild(sliders_array[key].label);
+					}
+					if (url_params.has('auron1') &&
+						url_params.has('tidus1') &&
+						url_params.has('auron2') &&
+						url_params.has('tidus2') &&
+						url_params.has('auron3') &&
+						url_params.has('tidus3')) {
+						document.getElementById('damage_rolls_form').style.display = 'none'
+						print_data()
 					}
 				</script>
 			</div>
