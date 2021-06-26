@@ -1,30 +1,32 @@
 <!doctype html>
 <html>
 	<head>
-		<style type='text/css'>
-			.container {
-				display: grid;
-				grid-template-columns: 1fr 1fr 1fr 100fr;
-				column-gap: 4px;
-			}
-		</style>
-		<script>
+		<script type='text/javascript'>
 			const raw_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv';
-			const formations_file = 'https://gist.githubusercontent.com/Grayfox96/fe50cabfd264caeefdabe34507b86bce/raw/38a0aa30f58b6746bf4bcceefd7872d168095b34/ffxhd-formations.csv';
+			const formations_file = 'files/ffxhd-formations.csv';
 			var current_seed = [];
 			var formations_array = [];
 			const url_params = new URLSearchParams(window.location.search);
+			var vertical;
+			try {
+				vertical = (url_params.get('vertical') == 'true') ? true : false;
+			} catch(error) {
+				if (error instanceof ReferenceError) {
+					console.log(error);
+				} else{
+					throw error;
+				}
+			}
 			const damage_rolls = {};
 			damage_rolls['possible_rolls'] = {};
 			damage_rolls['possible_rolls']['tidus'] = [125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141];
 			damage_rolls['possible_rolls']['auron'] = [260, 261, 262, 263, 264, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 278,
 											279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 291, 292, 293, 294];
-			const get_url_parameters = {'sliders': true, 'damage_rolls': true}
 			var rng_position = 0;
 			var encounter_counter = 0;
 			var full_data = '';
-			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' needs a padding of 1 space, so 37 total characters
-			const padding = 37;
+			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' is 36 characters
+			const padding = vertical ? 0 : 36;
 			async function get_csv_file(file) {
 				response = await fetch(file);
 				text = await response.text();
@@ -71,9 +73,9 @@
 				let warning_text = 'Seed not found!\n';
 				for (let [character, max_roll] of Object.entries(characters)) {
 					let character_capitalized = character.charAt(0).toUpperCase() + character.slice(1);
-					let damage_rolls_length = damage_rolls["possible_rolls"][character].length;
+					let damage_rolls_length = damage_rolls['possible_rolls'][character].length;
 					for (let j = 0; j < damage_rolls_length; j++) {
-						damage_rolls["possible_rolls"][character].push(damage_rolls["possible_rolls"][character][j] * 2);
+						damage_rolls['possible_rolls'][character].push(damage_rolls['possible_rolls'][character][j] * 2);
 					}
 					for (let j = 1; j < 4; j++) {
 						if (!(damage_rolls['possible_rolls'][character].includes(damage_rolls[character + j]))) {
@@ -139,35 +141,32 @@
 				formations_array = get_formations_array(await get_csv_file(formations_file));
 				document.getElementById('raw_data').innerHTML = get_raw_data(current_seed);
 				get_data(current_seed);
-				document.getElementById('sliders').style.display = 'block';
+				document.getElementById('sliders').style.display = vertical ? 'none' : 'block';
+				document.getElementById('vertical_footer').style.display = vertical ? 'block' : 'none';
 				document.getElementById('page_link').style.display = 'block';
 			}
 			function get_url() {
-				var parameters = [];
-				let settings = document.getElementById('page_link_select').value;
-					if (settings == 'damage_rolls') {
-						get_url_parameters['damage_rolls'] = true;
-						get_url_parameters['sliders'] = false;
-					} else if (settings == 'sliders') {
-						get_url_parameters['damage_rolls'] = false;
-						get_url_parameters['sliders'] = true;
-					} else if (settings == 'both') {
-						get_url_parameters['damage_rolls'] = true;
-						get_url_parameters['sliders'] = true;
-					}
-				if (get_url_parameters['damage_rolls']) {
+				const parameters = [];
+				const settings = [];
+				settings['rolls'] = document.getElementById('settings_rolls').checked;
+				settings['sliders'] = document.getElementById('settings_sliders').checked;
+				settings['vertical'] = document.getElementById('settings_vertical').checked;
+				if (settings['rolls']) {
 					for (let i = 0; i < 6; i++) {
 						let key = document.getElementById('damage_rolls_form').elements[i].id;
 						let value = document.getElementById('damage_rolls_form').elements[i].value;
 						parameters.push(key + '=' + value);
 					}
 				}
-				if (get_url_parameters['sliders']) {
+				if (settings['sliders']) {
 					let encounters = '';
 					for (let key in sliders_array) {
 						encounters = encounters + Number(sliders_array[key].slider.value).toString(16);
 					}
 					parameters.push('encounters=' + encounters);
+				}
+				if (settings['vertical']) {
+					parameters.push('vertical=true');
 				}
 				url = window.location.origin + window.location.pathname + '?' + parameters.join('&');
 				document.getElementById('page_link_textarea').value = url;
@@ -177,7 +176,7 @@
 				for (let i in encounters) {
 					encounter_counter = encounter_counter + 1;
 					let condition = get_condition(current_seed[rng_position + 6], initiative);
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')}${condition}\n`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
@@ -187,7 +186,7 @@
 					encounter_counter = encounter_counter + 1;
 					let condition = get_condition(current_seed[rng_position + 6], initiative);
 					encounter_name = `${encounter_name} [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')}${condition}\n`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
@@ -198,7 +197,7 @@
 					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(padding, ' ');
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `${zone} [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
@@ -211,7 +210,7 @@
 					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(padding, ' ');
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `Cave [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
@@ -221,7 +220,7 @@
 				add_forced_encounters(['Piranhas', 'Tros']);
 				add_random_encounters('Besaid Lagoon');
 				add_forced_encounters(['Dingo/Condor', 'Water Flan', 'Kimahri', 'Garuda 1', 'Garuda 2', 'Condor/Dingo/Water Flan']);
-				add_random_encounters('Besaid');
+				add_random_encounters('Besaid Road');
 				add_forced_encounters(['Sin Fin', 'Echuilles', 'Lancet tutorial']);
 				add_optional_forced_encounters('Lord Ochu (Way In)');
 				add_random_encounters('Kilika Woods (Way In)');
@@ -274,6 +273,11 @@
 				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>');
 				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>');
 				full_data = full_data.replace(/Ghost|Funguar|Bomb/g, '<mark>$&</mark>');
+				if (vertical) {
+					let regex_needle = RegExp(Object.keys(sliders_array)[selected_area].replace(/\(|\)/g, '\\$&'));
+					let highlighted_area = new RegExp(regex_needle, 'g');
+					full_data = full_data.replace(highlighted_area, '<mark style="background-color: #b0b0b0">$&</mark>');
+				}
 				document.getElementById('full_data').innerHTML = full_data;
 				get_url()
 				rng_position = 0;
@@ -284,7 +288,7 @@
 		<title>ffx_seed_finder</title>
 	</head>
 	<body>
-		<div>
+		<div style='display: unset'>
 			<script type='text/javascript'>
 				function toggle_element(element_name) {
 					let element = document.getElementById(element_name);
@@ -300,11 +304,30 @@
 				function reset() {
 					window.location = window.location.pathname;
 				}
+				function change_layout() {
+					let url = window.location.origin + window.location.pathname;
+					const parameters = [];
+					if (vertical) {
+						parameters.push('vertical=false');
+					} else {
+						parameters.push('vertical=true');
+					}
+					for (let [key, value] of url_params.entries()) {
+						console.log(key);
+						console.log(value);
+						if (['auron1', 'tidus1', 'auron2', 'tidus2', 'auron3', 'tidus3', 'encounters'].includes(key)) {
+							parameters.push(key + '=' + value);
+						}
+					}
+					url = `${url}?${parameters.join('&')}`;
+					window.location = url;
+				}
 			</script>
 			<button onclick='reset()' id='reset_button' style='height:20px'>Reset</button>
 			<button onclick='toggle_element("raw_data")' id='raw_data_button' style='height:20px'>Hide raw data</button>
 			<button onclick='toggle_element("settings")' id='settings_button' style='height:20px'>Hide settings</button>
-			<div id='settings'>
+			<button onclick='change_layout()' id='settings_layout' style='height:20px'>Change layout</button>
+			<div id='settings' style='position: -webkit-sticky; position: sticky; top: 0; background-color: white; border-style: solid;'>
 				<form id='damage_rolls_form' onsubmit='print_data();'>
 					<label for='auron1'>Auron 1</label>
 					<input type='number' id='auron1' name='auron1' min='260' max='588'>
@@ -322,28 +345,35 @@
 				</form>
 				<div id='page_link' style='display: none'>
 					<label>Link with these settings:</label>
-					<select oninput='get_url()' id='page_link_select'>
-						<option value='both'>Both</option>
-						<option value='damage_rolls'>Damage rolls</option>
-						<option value='sliders'>Slider values</option>
-					</select>
-					<textarea id='page_link_textarea' rows='2' cols='120' readOnly='true' style=' grid-column-start: 1; grid-column-end: 4;'></textarea>
+					<div style='display: inline-block'>
+						<input type='checkbox' id='settings_rolls' name='settings_rolls' oninput='get_url()'>
+						<label for='settings_rolls'>Damage Rolls</label><br>
+					</div>
+					<div style='display: inline-block'>
+						<input type='checkbox' id='settings_sliders' name='settings_sliders' oninput='get_url()'>
+						<label for='settings_sliders'>Sliders</label><br>
+					</div>
+					<div style='display: inline-block'>
+						<input type='checkbox' id='settings_vertical' name='settings_vertical' oninput='get_url()'>
+						<label for='settings_vertical'>Vertical Layout</label><br>
+					</div>
+					<textarea id='page_link_textarea' rows='4' cols='120' readOnly='true'></textarea>
 				</div>
 			</div>
 		</div>
-		<div class='container'>
+		<div style='display: grid; grid-template-columns: 1fr 1fr 1fr 100fr; column-gap: 4px;'>
 			<div>
 				<pre id='raw_data'></pre>
 			</div>
 			<div>
 				<pre id='full_data'></pre>
 			</div>
-			<div id='sliders' style="position: sticky; bottom: 20px; grid-row-start: 2; grid-column-start: 3; display: none;">
+			<div id='sliders' style='position: sticky; bottom: 20px; grid-row-start: 2; grid-column-start: 3; display: none;'>
 				<script type='text/javascript'>
 					const sliders_array = {
 						'Underwater Ruins':				{min:0, default:1, max:1},
 						'Besaid Lagoon':				{min:0, default:2, max:4},
-						'Besaid':						{min:0, default:0, max:1},
+						'Besaid Road':					{min:0, default:0, max:1},
 						'Lord Ochu (Way In)':			{min:0, default:0, max:1},
 						'Kilika Woods (Way In)':		{min:0, default:2, max:6},
 						'Lord Ochu (Way Out)':			{min:0, default:0, max:1},
@@ -376,7 +406,7 @@
 						'Highbridge':					{min:0, default:2, max:5},
 						'Calm Lands':					{min:0, default:10, max:12},
 						'Cave':							{min:0, default:50, max:99}
-					}
+					};
 					const div = document.getElementById('sliders');
 					for (let key in sliders_array) {
 						sliders_array[key].parent = document.createElement('div');
@@ -421,6 +451,37 @@
 					}
 				</script>
 			</div>
+		</div>
+		<div id='vertical_footer' style='position: fixed; left: 0; bottom: 0; width: 100%; background-color: #5584ff; text-align: center; display= none'>
+			<script type='text/javascript'>
+				var selected_area = 0;
+				const areas = Object.keys(sliders_array);
+				function change_area(next) {
+					if (next) {
+						selected_area++;
+					} else {
+						selected_area--;
+					}
+					selected_area = (selected_area < 0) ? 0 : ((selected_area > areas.length) ? areas.length : selected_area);
+					get_data(current_seed);
+				}
+				function add_remove_encounters(add) {
+					let current_slider = sliders_array[areas[selected_area]].slider;
+					if (add) {
+						current_slider.value = Number(current_slider.value) + 1;
+					} else {
+						current_slider.value = current_slider.value - 1;
+					}
+					get_data(current_seed);
+				}
+			</script>
+			<button onclick='change_area(next=false)' id='reset_button' style='height:50px; width: 50px'><</button>
+			<pre style='display: inline-block'>Area</pre>
+			<button onclick='change_area(next=true)' id='reset_button' style='height:50px; width: 50px; display: inline-block;'>></button>
+			<button onclick='toggle_element("settings")' id='settings_button_vertical' style='height:50px; width: 50px'>⚙</button>
+			<button onclick='add_remove_encounters(add=false)' id='reset_button' style='height:50px; width: 50px'>-</button>
+			<pre style='display: inline-block'>Encounters</pre>
+			<button onclick='add_remove_encounters(add=true)' id='reset_button' style='height:50px; width: 50px'>+</button>
 		</div>
 	</body>
 </html>
