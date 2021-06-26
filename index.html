@@ -7,7 +7,7 @@
 			var current_seed = [];
 			var formations_array = [];
 			const url_params = new URLSearchParams(window.location.search);
-			var vertical;
+			var vertical = false;
 			try {
 				vertical = (url_params.get('vertical') == 'true') ? true : false;
 			} catch(error) {
@@ -475,13 +475,13 @@
 					get_data(current_seed);
 				}
 			</script>
-			<button onclick='change_area(next=false)' id='reset_button' style='height:50px; width: 50px'><</button>
+			<button onclick='change_area(next=false)' id='reset_button' style='height:10vw; width: 10vw'><</button>
 			<pre style='display: inline-block'>Area</pre>
-			<button onclick='change_area(next=true)' id='reset_button' style='height:50px; width: 50px; display: inline-block;'>></button>
-			<button onclick='toggle_element("settings")' id='settings_button_vertical' style='height:50px; width: 50px'>⚙</button>
-			<button onclick='add_remove_encounters(add=false)' id='reset_button' style='height:50px; width: 50px'>-</button>
+			<button onclick='change_area(next=true)' id='reset_button' style='height:10vw; width: 10vw; display: inline-block;'>></button>
+			<button onclick='toggle_element("settings")' id='settings_button_vertical' style='height:10vw; width: 10vw'>⚙</button>
+			<button onclick='add_remove_encounters(add=false)' id='reset_button' style='height:10vw; width: 10vw'>-</button>
 			<pre style='display: inline-block'>Encounters</pre>
-			<button onclick='add_remove_encounters(add=true)' id='reset_button' style='height:50px; width: 50px'>+</button>
+			<button onclick='add_remove_encounters(add=true)' id='reset_button' style='height:10vw; width: 10vw'>+</button>
 		</div>
 	</body>
 </html>
