@@ -9,44 +9,49 @@
 			}
 		</style>
 		<script>
-			const raw_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv'
-			const formations_file = 'https://gist.githubusercontent.com/Grayfox96/fe50cabfd264caeefdabe34507b86bce/raw/38a0aa30f58b6746bf4bcceefd7872d168095b34/ffxhd-formations.csv'
-			var current_seed = []
-			var formations_array = []
+			const raw_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv';
+			const formations_file = 'https://gist.githubusercontent.com/Grayfox96/fe50cabfd264caeefdabe34507b86bce/raw/38a0aa30f58b6746bf4bcceefd7872d168095b34/ffxhd-formations.csv';
+			var current_seed = [];
+			var formations_array = [];
 			const url_params = new URLSearchParams(window.location.search);
-			const damage_rolls = []
-			var rng_position = 0
-			var encounter_counter = 0
-			var full_data = ''
+			const damage_rolls = {};
+			damage_rolls['possible_rolls'] = {};
+			damage_rolls['possible_rolls']['tidus'] = [125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141];
+			damage_rolls['possible_rolls']['auron'] = [260, 261, 262, 263, 264, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 278,
+											279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 291, 292, 293, 294];
+			const get_url_parameters = {'sliders': true, 'damage_rolls': true}
+			var rng_position = 0;
+			var encounter_counter = 0;
+			var full_data = '';
 			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' needs a padding of 1 space, so 37 total characters
-			const padding = 37
+			const padding = 37;
 			async function get_csv_file(file) {
 				response = await fetch(file);
-				text = await response.text()
-				return text
+				text = await response.text();
+				return text;
 			}
 			function csv_to_array(csv_text, delimiter = ',') {
-				let array = []
+				let array = [];
 				let rows = csv_text.split('\n');
 				for (let i in rows) {
 					array.push(rows[i].split(','));
 				}
-				return array
+				return array;
 			}
 			function get_formations_array(formations_text, delimiter=',') {
-				let array = []
+				let array = [];
 				let rows = formations_text.split('\n');
 				for (let i in rows) {
-					let row = rows[i].split(',')
+					let row = rows[i].split(',');
 					for (let j in row) {
 						if (j == 0) {
-							array[row[0]] = []
+							array[row[0]] = [];
 						} else {
-							array[row[0]].push(row[j])
+							array[row[0]].push(row[j]);
 						}
 					}
 				}
-				return array
+				return array;
 			}
 			function get_current_seed(rng_array){
 				if (url_params.has('auron1') &&
@@ -56,32 +61,43 @@
 					url_params.has('auron3') &&
 					url_params.has('tidus3')) {
 					for (let [key, value] of url_params.entries()) {
-					damage_rolls[key] = Number(value)
+						if (['auron1', 'tidus1', 'auron2', 'tidus2', 'auron3', 'tidus3'].includes(key)) {
+							damage_rolls[key] = Number(value);
+							document.getElementById(key).value = Number(value);
+						}
 					}
 				}
-				for (let i = 1; i < 4; i++) {
-					if (damage_rolls['auron' + i] > 294) {
-						damage_rolls['auron' + i] = damage_rolls['auron' + i] / 2
+				const characters = {tidus: 141, auron: 294};
+				let warning_text = 'Seed not found!\n';
+				for (let [character, max_roll] of Object.entries(characters)) {
+					let character_capitalized = character.charAt(0).toUpperCase() + character.slice(1);
+					let damage_rolls_length = damage_rolls["possible_rolls"][character].length;
+					for (let j = 0; j < damage_rolls_length; j++) {
+						damage_rolls["possible_rolls"][character].push(damage_rolls["possible_rolls"][character][j] * 2);
 					}
-					if (damage_rolls['tidus' + i] > 141) {
-						damage_rolls['tidus' + i] = damage_rolls['tidus' + i] / 2
+					for (let j = 1; j < 4; j++) {
+						if (!(damage_rolls['possible_rolls'][character].includes(damage_rolls[character + j]))) {
+							warning_text = `${warning_text} ${damage_rolls['tidus' + j]} is not a possible damage roll for ${character_capitalized}.\n`;
+						}
+						if (damage_rolls[character + j] > max_roll) {
+							damage_rolls[character + j] = damage_rolls[character + j] / 2;
+						}
 					}
 				}
 				for (let i in rng_array) {
 					// check damage rolls
-					if (rng_array[i][0] == damage_rolls['auron1'] && 
-						rng_array[i][1] == damage_rolls['tidus1'] && 
-						rng_array[i][2] == damage_rolls['auron2'] && 
-						rng_array[i][3] == damage_rolls['tidus2'] && 
-						rng_array[i][4] == damage_rolls['auron3'] && 
+					if (rng_array[i][0] == damage_rolls['auron1'] &&
+						rng_array[i][1] == damage_rolls['tidus1'] &&
+						rng_array[i][2] == damage_rolls['auron2'] &&
+						rng_array[i][3] == damage_rolls['tidus2'] &&
+						rng_array[i][4] == damage_rolls['auron3'] &&
 						rng_array[i][5] == damage_rolls['tidus3']) {
-						console.log('Seed found! Seed number ' + i)
-						return rng_array[i]
+						console.log('Seed found! Seed number ' + i);
+						return rng_array[i];
 					}
 				}
-				console.log('Seed not found!')
-				document.getElementById('raw_data').innerHTML = 'Seed not found!'
-				document.getElementById('full_data').innerHTML = 'Seed not found!'
+				document.getElementById('full_data').innerHTML = warning_text;
+				throw 'Seed not found!';
 			}
 			function get_condition(raw_rng, initiative=false) {
 				let condition_rng = raw_rng & 255;
@@ -120,164 +136,207 @@
 			}
 			async function print_data() {
 				current_seed = get_current_seed(csv_to_array(await get_csv_file(raw_rng_file)));
-				formations_array = get_formations_array(await get_csv_file(formations_file))
+				formations_array = get_formations_array(await get_csv_file(formations_file));
 				document.getElementById('raw_data').innerHTML = get_raw_data(current_seed);
 				get_data(current_seed);
 				document.getElementById('sliders').style.display = 'block';
+				document.getElementById('page_link').style.display = 'block';
+			}
+			function get_url() {
+				var parameters = [];
+				let settings = document.getElementById('page_link_select').value;
+					if (settings == 'damage_rolls') {
+						get_url_parameters['damage_rolls'] = true;
+						get_url_parameters['sliders'] = false;
+					} else if (settings == 'sliders') {
+						get_url_parameters['damage_rolls'] = false;
+						get_url_parameters['sliders'] = true;
+					} else if (settings == 'both') {
+						get_url_parameters['damage_rolls'] = true;
+						get_url_parameters['sliders'] = true;
+					}
+				if (get_url_parameters['damage_rolls']) {
+					for (let i = 0; i < 6; i++) {
+						let key = document.getElementById('damage_rolls_form').elements[i].id;
+						let value = document.getElementById('damage_rolls_form').elements[i].value;
+						parameters.push(key + '=' + value);
+					}
+				}
+				if (get_url_parameters['sliders']) {
+					let encounters = '';
+					for (let key in sliders_array) {
+						encounters = encounters + Number(sliders_array[key].slider.value).toString(16);
+					}
+					parameters.push('encounters=' + encounters);
+				}
+				url = window.location.origin + window.location.pathname + '?' + parameters.join('&');
+				document.getElementById('page_link_textarea').value = url;
+				return url;
 			}
 			function add_forced_encounters(encounters, initiative=false) {
 				for (let i in encounters) {
-					encounter_counter = encounter_counter + 1
-					let condition = get_condition(current_seed[rng_position + 6], initiative)
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')}${condition}\n`
-					rng_position = rng_position + 1
+					encounter_counter = encounter_counter + 1;
+					let condition = get_condition(current_seed[rng_position + 6], initiative);
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')}${condition}\n`;
+					rng_position = rng_position + 1;
 				}
 			}
 			function add_optional_forced_encounters(encounter_name, initiative=false) {
-				let encounters = document.getElementById(encounter_name).value
+				let encounters = document.getElementById(encounter_name).value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1
-					let condition = get_condition(current_seed[rng_position + 6], initiative)
-					encounter_name = `${encounter_name} [${i + 1}]`
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')}${condition}\n`
-					rng_position = rng_position + 1
+					encounter_counter = encounter_counter + 1;
+					let condition = get_condition(current_seed[rng_position + 6], initiative);
+					encounter_name = `${encounter_name} [${i + 1}]`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')}${condition}\n`;
+					rng_position = rng_position + 1;
 				}
 			}
 			function add_random_encounters(zone, initiative=false) {
-				let encounters = document.getElementById(zone).value
+				let encounters = document.getElementById(zone).value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1
-					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(padding, ' ')
-					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
-					let encounter_number = `${zone} [${i + 1}]`
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
-					rng_position = rng_position + 2
+					encounter_counter = encounter_counter + 1;
+					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(padding, ' ');
+					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
+					let encounter_number = `${zone} [${i + 1}]`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`;
+					rng_position = rng_position + 2;
 				}
 			}
 			function add_cave_encounters(initiative=false) {
-				let encounters = document.getElementById('Cave').value
+				let encounters = document.getElementById('Cave').value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1
-					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)')
-					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)')
-					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(padding, ' ')
-					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative)
-					let encounter_number = `Cave [${i + 1}]`
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`
-					rng_position = rng_position + 2
+					encounter_counter = encounter_counter + 1;
+					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)');
+					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)');
+					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(padding, ' ');
+					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
+					let encounter_number = `Cave [${i + 1}]`;
+					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation}${condition}\n`;
+					rng_position = rng_position + 2;
 				}
 			}
 			function get_data(seed) {
-				add_forced_encounters(['Sinscales', 'Ammes', 'Tanker', 'Sahagins', 'Geosgaeno', 'Klikk 1', 'Klikk 2'])
-				add_random_encounters('Underwater Ruins')
-				add_forced_encounters(['Piranhas', 'Tros'])
-				add_random_encounters('Besaid Lagoon')
-				add_forced_encounters(['Dingo/Condor', 'Water Flan', 'Kimahri', 'Garuda 1', 'Garuda 2', 'Condor/Dingo/Water Flan'])
-				add_random_encounters('Besaid')
-				add_forced_encounters(['Sin Fin', 'Echuilles', 'Lancet tutorial'])
-				add_optional_forced_encounters('Lord Ochu (Way In)')
-				add_random_encounters('Kilika Woods (Way In)')
-				add_forced_encounters(['Geneaux'])
-				add_optional_forced_encounters('Lord Ochu (Way Out)')
-				add_random_encounters('Kilika Woods (Way Out)')
-				add_forced_encounters(['Machina 1', 'Machina 2', 'Machina 3', 'Oblitzerator', 'Sahagin Chiefs', 'Vouivre', 'Garuda', 'Pierce tutorial'])
-				add_random_encounters('Miihen Screen 1')
-				add_random_encounters('Miihen Screen 2/3')
-				add_forced_encounters(['Chocobo Eater'])
-				add_random_encounters('Old Road')
-				add_random_encounters('Clasko Skip Screen')
-				add_random_encounters('MRR - Valley')
-				add_random_encounters('MRR - Precipice')
-				add_forced_encounters(['Sinspawn Gui 1', 'Sinspawn Gui 2'])
-				add_random_encounters('Djose Highroad (Front Half)', initiative=true)
-				add_random_encounters('Djose Highroad (Back Half)', initiative=true)
-				add_random_encounters('Moonflow (South)', initiative=true)
-				add_forced_encounters(['Extractor', 'Rikku tutorial'])
-				add_random_encounters('Moonflow (North)', initiative=true)
-				add_random_encounters('Thunder Plains (South)', initiative=true)
-				add_random_encounters('Thunder Plains (North)', initiative=true)
-				add_random_encounters('Macalania Woods')
-				add_forced_encounters(['Spherimorph'])
-				add_random_encounters('Lake Macalania')
-				add_forced_encounters(['Crawler', 'Seymour'])
-				add_optional_forced_encounters('Guado Encounter')
-				add_random_encounters('Crevasse')
-				add_forced_encounters(['Wendigo', 'Zu'])
-				add_random_encounters('Bikanel (Pre Machina)', initiative=true)
-				add_forced_encounters(['Machina Steal tutorial'])
-				add_random_encounters('Bikanel (Post Machina)', initiative=true)
-				add_random_encounters('Bikanel (Central)', initiative=true)
-				add_random_encounters('Bikanel (Ruins)', initiative=true)
-				add_random_encounters('Bikanel (Pre Sandragora)', initiative=true)
-				add_forced_encounters(['Sandragora 1'], initiative=true)
-				add_optional_forced_encounters('Sandragora 1 refight', initiative=true)
-				add_random_encounters('Bikanel (Post Sandragora)', initiative=true)
+				add_forced_encounters(['Sinscales', 'Ammes', 'Tanker', 'Sahagins', 'Geosgaeno', 'Klikk 1', 'Klikk 2']);
+				add_random_encounters('Underwater Ruins');
+				add_forced_encounters(['Piranhas', 'Tros']);
+				add_random_encounters('Besaid Lagoon');
+				add_forced_encounters(['Dingo/Condor', 'Water Flan', 'Kimahri', 'Garuda 1', 'Garuda 2', 'Condor/Dingo/Water Flan']);
+				add_random_encounters('Besaid');
+				add_forced_encounters(['Sin Fin', 'Echuilles', 'Lancet tutorial']);
+				add_optional_forced_encounters('Lord Ochu (Way In)');
+				add_random_encounters('Kilika Woods (Way In)');
+				add_forced_encounters(['Geneaux']);
+				add_optional_forced_encounters('Lord Ochu (Way Out)');
+				add_random_encounters('Kilika Woods (Way Out)');
+				add_forced_encounters(['Machina 1', 'Machina 2', 'Machina 3', 'Oblitzerator', 'Sahagin Chiefs', 'Vouivre', 'Garuda', 'Pierce tutorial']);
+				add_random_encounters('Miihen Screen 1');
+				add_random_encounters('Miihen Screen 2/3');
+				add_forced_encounters(['Chocobo Eater']);
+				add_random_encounters('Old Road');
+				add_random_encounters('Clasko Skip Screen');
+				add_random_encounters('MRR - Valley');
+				add_random_encounters('MRR - Precipice');
+				add_forced_encounters(['Sinspawn Gui 1', 'Sinspawn Gui 2']);
+				add_random_encounters('Djose Highroad (Front Half)', initiative=true);
+				add_random_encounters('Djose Highroad (Back Half)', initiative=true);
+				add_random_encounters('Moonflow (South)', initiative=true);
+				add_forced_encounters(['Extractor', 'Rikku tutorial']);
+				add_random_encounters('Moonflow (North)', initiative=true);
+				add_random_encounters('Thunder Plains (South)', initiative=true);
+				add_random_encounters('Thunder Plains (North)', initiative=true);
+				add_random_encounters('Macalania Woods');
+				add_forced_encounters(['Spherimorph']);
+				add_random_encounters('Lake Macalania');
+				add_forced_encounters(['Crawler', 'Seymour']);
+				add_optional_forced_encounters('Guado Encounter');
+				add_random_encounters('Crevasse');
+				add_forced_encounters(['Wendigo', 'Zu']);
+				add_random_encounters('Bikanel (Pre Machina)', initiative=true);
+				add_forced_encounters(['Machina Steal tutorial']);
+				add_random_encounters('Bikanel (Post Machina)', initiative=true);
+				add_random_encounters('Bikanel (Central)', initiative=true);
+				add_random_encounters('Bikanel (Ruins)', initiative=true);
+				add_random_encounters('Bikanel (Pre Sandragora)', initiative=true);
+				add_forced_encounters(['Sandragora 1'], initiative=true);
+				add_optional_forced_encounters('Sandragora 1 refight', initiative=true);
+				add_random_encounters('Bikanel (Post Sandragora)', initiative=true);
 				add_forced_encounters(['Sandragora 2', 'Guado + 3 Bombs', 'Guado + 2 Dual Horn 1', 'Guado + 2 Chimera', 
-					'Evrae', 'Bevelle Guards 1', 'Bevelle Guards 2', 'Bevelle Guards 3', 'Bevelle Guards 4', 'Bevelle Guards 5'], initiative=true)
-				add_random_encounters('Via Purifico', initiative=true)
-				add_forced_encounters(['Isaaru Grothia', 'Isaaru Pterya', 'Isaaru Spathi'])
-				add_random_encounters('Via Purifico Underwater')
-				add_forced_encounters(['Evrae Altana'])
-				add_random_encounters('Highbridge', initiative=true)
-				add_forced_encounters(['Seymour Natus'])
-				add_random_encounters('Calm Lands', initiative=true)
-				add_forced_encounters(['Defender X'])
-				add_cave_encounters(initiative=true)
-				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>')
-				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>')
-				full_data = full_data.replace(/Ghost|Funguar|Bomb/g, '<mark>$&</mark>')
-				document.getElementById('full_data').innerHTML = full_data
-				rng_position = 0
-				encounter_counter = 0
-				full_data = ''
+					'Evrae', 'Bevelle Guards 1', 'Bevelle Guards 2', 'Bevelle Guards 3', 'Bevelle Guards 4', 'Bevelle Guards 5'], initiative=true);
+				add_random_encounters('Via Purifico', initiative=true);
+				add_forced_encounters(['Isaaru Grothia', 'Isaaru Pterya', 'Isaaru Spathi']);
+				add_random_encounters('Via Purifico Underwater');
+				add_forced_encounters(['Evrae Altana']);
+				add_random_encounters('Highbridge', initiative=true);
+				add_forced_encounters(['Seymour Natus']);
+				add_random_encounters('Calm Lands', initiative=true);
+				add_forced_encounters(['Defender X']);
+				add_cave_encounters(initiative=true);
+				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>');
+				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>');
+				full_data = full_data.replace(/Ghost|Funguar|Bomb/g, '<mark>$&</mark>');
+				document.getElementById('full_data').innerHTML = full_data;
+				get_url()
+				rng_position = 0;
+				encounter_counter = 0;
+				full_data = '';
 			}
 		</script>
 		<title>ffx_seed_finder</title>
 	</head>
 	<body>
-		<div style='display: grid; grid-template-columns: 1fr 100fr; column-gap: 4px;'>
-			<div>
-				<button onclick='reset()' id='reset_button' style='height:20px;width:120px'>Reset</button>
-				<button onclick='hide_raw_data()' id='raw_data_button' style='height:20px;width:120px'>Hide raw data</button>
-				<script type='text/javascript'>
-					function hide_raw_data() {
-						let raw_data = document.getElementById('raw_data');
-						let raw_data_button = document.getElementById('raw_data_button')
-						if (raw_data.style.display === 'none') {
-							raw_data.style.display = 'block';
-							raw_data_button.innerHTML = 'Hide raw data'
-						} else {
-							raw_data.style.display = 'none';
-							raw_data_button.innerHTML = 'Show raw data'
-						}
+		<div>
+			<script type='text/javascript'>
+				function toggle_element(element_name) {
+					let element = document.getElementById(element_name);
+					let button = document.getElementById(element_name + '_button');
+					if (element.style.display === 'none') {
+						element.style.display = 'block';
+						button.innerHTML = `Hide ${element_name.replace('_', ' ')}`;
+					} else {
+						element.style.display = 'none';
+						button.innerHTML = `Show ${element_name.replace('_', ' ')}`;
 					}
-					function reset() {
-						window.location = window.location.pathname;
-					}
-				</script>
+				}
+				function reset() {
+					window.location = window.location.pathname;
+				}
+			</script>
+			<button onclick='reset()' id='reset_button' style='height:20px'>Reset</button>
+			<button onclick='toggle_element("raw_data")' id='raw_data_button' style='height:20px'>Hide raw data</button>
+			<button onclick='toggle_element("settings")' id='settings_button' style='height:20px'>Hide settings</button>
+			<div id='settings'>
+				<form id='damage_rolls_form' onsubmit='print_data();'>
+					<label for='auron1'>Auron 1</label>
+					<input type='number' id='auron1' name='auron1' min='260' max='588'>
+					<label for='tidus1'>Tidus 1</label>
+					<input type='number' id='tidus1' name='tidus1' min='125' max='282'>
+					<label for='auron2'>Auron 2</label>
+					<input type='number' id='auron2' name='auron2' min='260' max='588'>
+					<label for='tidus2'>Tidus 2</label>
+					<input type='number' id='tidus2' name='tidus2' min='125' max='282'>
+					<label for='auron3'>Auron 3</label>
+					<input type='number' id='auron3' name='auron3' min='260' max='588'>
+					<label for='tidus3'>Tidus 3</label>
+					<input type='number' id='tidus3' name='tidus3' min='125' max='282'>
+					<input type='submit' value='Submit'>
+				</form>
+				<div id='page_link' style='display: none'>
+					<label>Link with these settings:</label>
+					<select oninput='get_url()' id='page_link_select'>
+						<option value='both'>Both</option>
+						<option value='damage_rolls'>Damage rolls</option>
+						<option value='sliders'>Slider values</option>
+					</select>
+					<textarea id='page_link_textarea' rows='2' cols='120' readOnly='true' style=' grid-column-start: 1; grid-column-end: 4;'></textarea>
+				</div>
 			</div>
-			<form id='damage_rolls_form' onsubmit='print_data();'>
-				<label for='auron1'>Auron 1</label>
-				<input type='number' id='auron1' name='auron1' min='260' max='588'>
-				<label for='tidus1'>Tidus 1</label>
-				<input type='number' id='tidus1' name='tidus1' min='125' max='282'>
-				<label for='auron2'>Auron 2</label>
-				<input type='number' id='auron2' name='auron2' min='260' max='588'>
-				<label for='tidus2'>Tidus 2</label>
-				<input type='number' id='tidus2' name='tidus2' min='125' max='282'>
-				<label for='auron3'>Auron 3</label>
-				<input type='number' id='auron3' name='auron3' min='260' max='588'>
-				<label for='tidus3'>Tidus 3</label>
-				<input type='number' id='tidus3' name='tidus3' min='125' max='282'>
-				<input type='submit' value='Submit'>
-			</form>
 		</div>
 		<div class='container'>
 			<div>
-				<pre id='raw_data'>Raw data goes here.</pre>
+				<pre id='raw_data'></pre>
 			</div>
 			<div>
-				<pre id='full_data'>Data goes here.</pre>
+				<pre id='full_data'></pre>
 			</div>
 			<div id='sliders' style="position: sticky; bottom: 20px; grid-row-start: 2; grid-column-start: 3; display: none;">
 				<script type='text/javascript'>
@@ -340,14 +399,25 @@
 						sliders_array[key].parent.appendChild(sliders_array[key].slider);
 						sliders_array[key].parent.appendChild(sliders_array[key].label);
 					}
+					if (url_params.has('encounters')) {
+						let encounters = url_params.get('encounters').split('');
+						var i = 0;
+						encounters[34] = 32; // this is hex for 50
+						for (let key in sliders_array) {
+							if (i in encounters) {
+								sliders_array[key].slider.value = parseInt(encounters[i], 16);
+								sliders_array[key].counter.innerHTML = `${parseInt(encounters[i], 16)}`.padStart(2, ' ');
+							}
+							i++;
+						}
+					}
 					if (url_params.has('auron1') &&
 						url_params.has('tidus1') &&
 						url_params.has('auron2') &&
 						url_params.has('tidus2') &&
 						url_params.has('auron3') &&
 						url_params.has('tidus3')) {
-						document.getElementById('damage_rolls_form').style.display = 'none'
-						print_data()
+						print_data();
 					}
 				</script>
 			</div>
