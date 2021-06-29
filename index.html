@@ -23,10 +23,11 @@
 			damage_rolls['possible_rolls']['auron'] = [260, 261, 262, 263, 264, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 278,
 											279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 291, 292, 293, 294];
 			var rng_position = 0;
-			var encounter_counter = 0;
+			var total_encounters = 0;
+			var random_encounters = 0;
 			var full_data = '';
-			// 'Nidhogg+Dark Element x2/Valaha+Epaaj' is 36 characters
-			const padding = vertical ? 0 : 36;
+			// 'xxx: Nidhogg+Dark Element x2/Valaha+Epaaj' is 41 characters
+			const padding = vertical ? 0 : 41;
 			async function get_csv_file(file) {
 				response = await fetch(file);
 				text = await response.text();
@@ -174,43 +175,45 @@
 			}
 			function add_forced_encounters(encounters, initiative=false) {
 				for (let i in encounters) {
-					encounter_counter = encounter_counter + 1;
+					total_encounters = total_encounters + 1;
 					let condition = get_condition(current_seed[rng_position + 6], initiative);
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')} ${condition}\n`;
+					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
 			function add_optional_forced_encounters(encounter_name, initiative=false) {
 				let encounters = document.getElementById(encounter_name).value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1;
+					total_encounters = total_encounters + 1;
 					let condition = get_condition(current_seed[rng_position + 6], initiative);
 					encounter_name = `${encounter_name} [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')} ${condition}\n`;
+					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
 			function add_random_encounters(zone, initiative=false) {
 				let encounters = document.getElementById(zone).value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1;
-					let formation = get_formation(current_seed[rng_position + 6], zone).padEnd(padding, ' ');
+					total_encounters = total_encounters + 1;
+					random_encounters = random_encounters + 1;
+					let formation = `${random_encounters.toString().padStart(3, ' ')}: ${get_formation(current_seed[rng_position + 6], zone)}`;
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `${zone} [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation} ${condition}\n`;
+					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
 			function add_cave_encounters(initiative=false) {
 				let encounters = document.getElementById('Cave').value;
 				for (let i = 0; i < encounters; i++) {
-					encounter_counter = encounter_counter + 1;
+					total_encounters = total_encounters + 1;
+					random_encounters = random_encounters + 1;
 					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)');
 					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)');
-					let formation = `${formation_white_zone}/${formation_green_zone}`.padEnd(padding, ' ');
+					let formation = `${random_encounters.toString().padStart(3, ' ')}: ${formation_white_zone}/${formation_green_zone}`;
 					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `Cave [${i + 1}]`;
-					full_data = `${full_data}${encounter_counter.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation} ${condition}\n`;
+					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
@@ -281,7 +284,8 @@
 				document.getElementById('full_data').innerHTML = full_data;
 				get_url()
 				rng_position = 0;
-				encounter_counter = 0;
+				total_encounters = 0;
+				random_encounters = 0;
 				full_data = '';
 			}
 		</script>
@@ -452,7 +456,7 @@
 				</script>
 			</div>
 		</div>
-		<div id='vertical_footer' style='position: fixed; left: 0; bottom: 0; width: 100%; background-color: #5584ff; text-align: center; display= none'>
+		<div id='vertical_footer' style='position: fixed; left: 0; bottom: 0; width: 100%; background-color: #5584ff; text-align: center; display: none'>
 			<script type='text/javascript'>
 				var selected_area = 0;
 				const areas = Object.keys(sliders_array);
