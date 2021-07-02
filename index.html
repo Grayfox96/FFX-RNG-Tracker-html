@@ -107,7 +107,9 @@
 				let condition = 2;
 				let output = '';
 				if (initiative) {
-					condition_rng = condition_rng - 32 - 1;
+					if (document.getElementById('settings_sentry').checked) {
+						condition_rng = condition_rng - 32 - 1;
+					}
 				}
 				if (condition_rng < 255 - 32) {
 					if (condition_rng < 32) {
@@ -145,6 +147,7 @@
 				document.getElementById('sliders').style.display = vertical ? 'none' : 'block';
 				document.getElementById('vertical_footer').style.display = vertical ? 'block' : 'none';
 				document.getElementById('page_link').style.display = 'block';
+				document.getElementById('settings_sentry_div').style.display = 'block';
 			}
 			function get_url() {
 				const parameters = [];
@@ -362,6 +365,10 @@
 						<label for='settings_vertical'>Vertical Layout</label><br>
 					</div>
 					<textarea id='page_link_textarea' rows='4' cols='120' readOnly='true'></textarea>
+				</div>
+				<div id='settings_sentry_div' style='display: none;'>
+						<input type='checkbox' id='settings_sentry' name='settings_sentry' oninput='get_data(current_seed)' checked>
+						<label for='settings_sentry'>Sentry</label><br>
 				</div>
 			</div>
 		</div>
