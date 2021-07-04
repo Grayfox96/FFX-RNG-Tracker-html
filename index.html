@@ -148,6 +148,8 @@
 				document.getElementById('vertical_footer').style.display = vertical ? 'block' : 'none';
 				document.getElementById('page_link').style.display = 'block';
 				document.getElementById('settings_sentry_div').style.display = 'block';
+				document.getElementById('thunder_plains_stones').value = 0
+				document.getElementById('settings_thunder_plains_stones_div').style.display = 'block';
 			}
 			function get_url() {
 				const parameters = [];
@@ -165,7 +167,11 @@
 				if (settings['sliders']) {
 					let encounters = '';
 					for (let key in sliders_array) {
-						encounters = encounters + Number(sliders_array[key].slider.value).toString(16);
+						let slider_value = Number(sliders_array[key].slider.value)
+						if (slider_value > 15) {
+							slider_value = 15
+						}
+						encounters = encounters + slider_value.toString(16);
 					}
 					parameters.push('encounters=' + encounters);
 				}
@@ -189,13 +195,24 @@
 				for (let i = 0; i < encounters; i++) {
 					total_encounters = total_encounters + 1;
 					let condition = get_condition(current_seed[rng_position + 6], initiative);
-					encounter_name = `${encounter_name} [${i + 1}]`;
-					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_name.padEnd(padding, ' ')} ${condition}\n`;
+					let encounter = `${encounter_name} [${i + 1}]`;
+					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
 			function add_random_encounters(zone, initiative=false) {
 				let encounters = document.getElementById(zone).value;
+				if (zone == 'Thunder Plains (South)') {
+					let thunder_plains_stones_activated = document.getElementById('thunder_plains_stones').value;
+					if (thunder_plains_stones_activated != 0) {
+						zone = `Thunder Plains (South) (${thunder_plains_stones_activated} stone)`;
+					}
+				} else if (zone == 'Thunder Plains (North)') {
+					let thunder_plains_stones_activated = document.getElementById('thunder_plains_stones').value;
+					if (thunder_plains_stones_activated != 0) {
+						zone = `Thunder Plains (North) (${thunder_plains_stones_activated} stone)`;
+					}
+				}
 				for (let i = 0; i < encounters; i++) {
 					total_encounters = total_encounters + 1;
 					random_encounters = random_encounters + 1;
@@ -364,11 +381,16 @@
 						<input type='checkbox' id='settings_vertical' name='settings_vertical' oninput='get_url()'>
 						<label for='settings_vertical'>Vertical Layout</label><br>
 					</div>
-					<textarea id='page_link_textarea' rows='4' cols='120' readOnly='true'></textarea>
+					<textarea id='page_link_textarea' rows='4' cols='60' readOnly='true'></textarea>
 				</div>
 				<div id='settings_sentry_div' style='display: none;'>
 						<input type='checkbox' id='settings_sentry' name='settings_sentry' oninput='get_data(current_seed)' checked>
 						<label for='settings_sentry'>Sentry</label><br>
+				</div>
+				<div id='settings_thunder_plains_stones_div' style='display: none;'>
+					<input type='range' id='thunder_plains_stones' name='thunder_plains_stones' min='0' max='3' oninput='get_data(current_seed)'>
+					<label for='thunder_plains_stones'>Thunder Plains Stones Activated</label>
+					
 				</div>
 			</div>
 		</div>
@@ -385,7 +407,7 @@
 						'Underwater Ruins':				{min:0, default:1, max:1},
 						'Besaid Lagoon':				{min:0, default:2, max:4},
 						'Besaid Road':					{min:0, default:0, max:1},
-						'Lord Ochu (Way In)':			{min:0, default:0, max:1},
+						'Lord Ochu (Way In)':			{min:0, default:0, max:150},
 						'Kilika Woods (Way In)':		{min:0, default:2, max:6},
 						'Lord Ochu (Way Out)':			{min:0, default:0, max:1},
 						'Kilika Woods (Way Out)':		{min:0, default:4, max:6},
@@ -443,7 +465,6 @@
 					if (url_params.has('encounters')) {
 						let encounters = url_params.get('encounters').split('');
 						var i = 0;
-						encounters[34] = 32; // this is hex for 50
 						for (let key in sliders_array) {
 							if (i in encounters) {
 								sliders_array[key].slider.value = parseInt(encounters[i], 16);
