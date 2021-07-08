@@ -2,9 +2,9 @@
 <html>
 	<head>
 		<script type='text/javascript'>
-			const raw_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv';
+			const raw_encounters_rng_file = 'https://gist.githubusercontent.com/Grayfox96/468e7a4ba63281208e07b476d45ccf3f/raw/d16cd4e02d08c7eda63ff191cc75b9923cc55ce4/ffxhd-raw-encounter-values.csv';
 			const formations_file = 'files/ffxhd-formations.csv';
-			var current_seed = [];
+			var current_encounters_seed = [];
 			var formations_array = [];
 			const url_params = new URLSearchParams(window.location.search);
 			var vertical = false;
@@ -25,9 +25,9 @@
 			var rng_position = 0;
 			var total_encounters = 0;
 			var random_encounters = 0;
-			var full_data = '';
+			var full_encounters_data = '';
 			// 'xxx: Nidhogg+Dark Element x2/Valaha+Epaaj' is 41 characters
-			const padding = vertical ? 0 : 41;
+			var padding = vertical ? 0 : 41;
 			async function get_csv_file(file) {
 				response = await fetch(file);
 				text = await response.text();
@@ -99,7 +99,7 @@
 						return rng_array[i];
 					}
 				}
-				document.getElementById('full_data').innerHTML = warning_text;
+				document.getElementById('full_encounters_data').innerHTML = warning_text;
 				throw 'Seed not found!';
 			}
 			function get_condition(raw_rng, initiative=false) {
@@ -131,24 +131,25 @@
 				let formation_number = raw_rng % formations_array[zone].length;
 				return formations_array[zone][formation_number];
 			}
-			function get_raw_data(seed) {
-				let raw_data = '';
+			function get_raw_encounters_data(seed) {
+				let raw_encounters_data = '';
 				for (let i = 6; i < 506; i++) {
 					let encounter = (i - 5).toString().padStart(3, ' ');
-					raw_data = `${raw_data}${encounter} | Forced Encounter: ${get_condition(seed[i]).padEnd(10, ' ')} | Random Encounter: ${get_condition(seed[i + 1]).padEnd(10, ' ')}|\n`;
+					raw_encounters_data = `${raw_encounters_data}${encounter} | Forced Encounter: ${get_condition(seed[i]).padEnd(10, ' ')} | Random Encounter: ${get_condition(seed[i + 1]).padEnd(10, ' ')}|\n`;
 				}
-				return raw_data;
+				return raw_encounters_data;
 			}
-			async function print_data() {
-				current_seed = get_current_seed(csv_to_array(await get_csv_file(raw_rng_file)));
+			async function initialize_encounters_data() {
+				current_encounters_seed = get_current_seed(csv_to_array(await get_csv_file(raw_encounters_rng_file)));
 				formations_array = get_formations_array(await get_csv_file(formations_file));
-				document.getElementById('raw_data').innerHTML = get_raw_data(current_seed);
-				get_data(current_seed);
+				document.getElementById('raw_encounters_data').innerHTML = get_raw_encounters_data(current_encounters_seed);
+				get_encounters_data(current_encounters_seed);
 				document.getElementById('sliders').style.display = vertical ? 'none' : 'block';
 				document.getElementById('vertical_footer').style.display = vertical ? 'block' : 'none';
 				document.getElementById('page_link').style.display = 'block';
 				document.getElementById('settings_sentry_div').style.display = 'block';
 				document.getElementById('thunder_plains_stones').value = 0
+				document.getElementById('settings_nsg_div').style.display = 'block';
 				document.getElementById('settings_thunder_plains_stones_div').style.display = 'block';
 			}
 			function get_url() {
@@ -185,8 +186,8 @@
 			function add_forced_encounters(encounters, initiative=false) {
 				for (let i in encounters) {
 					total_encounters = total_encounters + 1;
-					let condition = get_condition(current_seed[rng_position + 6], initiative);
-					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')} ${condition}\n`;
+					let condition = get_condition(current_encounters_seed[rng_position + 6], initiative);
+					full_encounters_data = `${full_encounters_data}${total_encounters.toString().padStart(3, ' ')}: ${encounters[i].padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
@@ -194,9 +195,9 @@
 				let encounters = document.getElementById(encounter_name).value;
 				for (let i = 0; i < encounters; i++) {
 					total_encounters = total_encounters + 1;
-					let condition = get_condition(current_seed[rng_position + 6], initiative);
+					let condition = get_condition(current_encounters_seed[rng_position + 6], initiative);
 					let encounter = `${encounter_name} [${i + 1}]`;
-					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter.padEnd(padding, ' ')} ${condition}\n`;
+					full_encounters_data = `${full_encounters_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 1;
 				}
 			}
@@ -216,10 +217,10 @@
 				for (let i = 0; i < encounters; i++) {
 					total_encounters = total_encounters + 1;
 					random_encounters = random_encounters + 1;
-					let formation = `${random_encounters.toString().padStart(3, ' ')}: ${get_formation(current_seed[rng_position + 6], zone)}`;
-					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
+					let formation = `${random_encounters.toString().padStart(3, ' ')}: ${get_formation(current_encounters_seed[rng_position + 6], zone)}`;
+					let condition = get_condition(current_encounters_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `${zone} [${i + 1}]`;
-					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
+					full_encounters_data = `${full_encounters_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
@@ -228,16 +229,16 @@
 				for (let i = 0; i < encounters; i++) {
 					total_encounters = total_encounters + 1;
 					random_encounters = random_encounters + 1;
-					let formation_white_zone = get_formation(current_seed[rng_position + 6], 'Cave (White Zone)');
-					let formation_green_zone = get_formation(current_seed[rng_position + 6], 'Cave (Green Zone)');
+					let formation_white_zone = get_formation(current_encounters_seed[rng_position + 6], 'Cave (White Zone)');
+					let formation_green_zone = get_formation(current_encounters_seed[rng_position + 6], 'Cave (Green Zone)');
 					let formation = `${random_encounters.toString().padStart(3, ' ')}: ${formation_white_zone}/${formation_green_zone}`;
-					let condition = get_condition(current_seed[rng_position + 6 + 1], initiative);
+					let condition = get_condition(current_encounters_seed[rng_position + 6 + 1], initiative);
 					let encounter_number = `Cave [${i + 1}]`;
-					full_data = `${full_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
+					full_encounters_data = `${full_encounters_data}${total_encounters.toString().padStart(3, ' ')}: ${encounter_number}\n   \`-${formation.padEnd(padding, ' ')} ${condition}\n`;
 					rng_position = rng_position + 2;
 				}
 			}
-			function get_data(seed) {
+			function get_encounters_data(seed) {
 				add_forced_encounters(['Sinscales', 'Ammes', 'Tanker', 'Sahagins', 'Geosgaeno', 'Klikk 1', 'Klikk 2']);
 				add_random_encounters('Underwater Ruins');
 				add_forced_encounters(['Piranhas', 'Tros']);
@@ -293,20 +294,20 @@
 				add_random_encounters('Calm Lands', initiative=true);
 				add_forced_encounters(['Defender X']);
 				add_cave_encounters(initiative=true);
-				full_data = full_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>');
-				full_data = full_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>');
-				full_data = full_data.replace(/Ghost|Funguar|Bomb/g, '<mark>$&</mark>');
+				full_encounters_data = full_encounters_data.replace(/Preemptive/g, '<span style="color:#00FF00">$&</span>');
+				full_encounters_data = full_encounters_data.replace(/Ambush/g, '<span style="color:#FF0000">$&</span>');
+				full_encounters_data = full_encounters_data.replace(/Ghost|Funguar|Bomb|Basilisk|Iron Giant/g, '<mark>$&</mark>');
 				if (vertical) {
 					let regex_needle = RegExp(Object.keys(sliders_array)[selected_area].replace(/\(|\)/g, '\\$&'));
 					let highlighted_area = new RegExp(regex_needle, 'g');
-					full_data = full_data.replace(highlighted_area, '<mark style="background-color: #b0b0b0">$&</mark>');
+					full_encounters_data = full_encounters_data.replace(highlighted_area, '<mark style="background-color: #b0b0b0">$&</mark>');
 				}
-				document.getElementById('full_data').innerHTML = full_data;
+				document.getElementById('full_encounters_data').innerHTML = full_encounters_data;
 				get_url()
 				rng_position = 0;
 				total_encounters = 0;
 				random_encounters = 0;
-				full_data = '';
+				full_encounters_data = '';
 			}
 		</script>
 		<title>ffx_seed_finder</title>
@@ -329,30 +330,20 @@
 					window.location = window.location.pathname;
 				}
 				function change_layout() {
-					let url = window.location.origin + window.location.pathname;
-					const parameters = [];
-					if (vertical) {
-						parameters.push('vertical=false');
-					} else {
-						parameters.push('vertical=true');
+					vertical = vertical ? false : true;
+					padding = vertical ? 0 : 41;
+					document.getElementById('sliders').style.display = vertical ? 'none' : 'block';
+					document.getElementById('vertical_footer').style.display = vertical ? 'block' : 'none';
+					get_encounters_data(current_encounters_seed)
 					}
-					for (let [key, value] of url_params.entries()) {
-						console.log(key);
-						console.log(value);
-						if (['auron1', 'tidus1', 'auron2', 'tidus2', 'auron3', 'tidus3', 'encounters'].includes(key)) {
-							parameters.push(key + '=' + value);
-						}
-					}
-					url = `${url}?${parameters.join('&')}`;
-					window.location = url;
-				}
 			</script>
-			<button onclick='reset()' id='reset_button' style='height:20px'>Reset</button>
-			<button onclick='toggle_element("raw_data")' id='raw_data_button' style='height:20px'>Hide raw data</button>
 			<button onclick='toggle_element("settings")' id='settings_button' style='height:20px'>Hide settings</button>
-			<button onclick='change_layout()' id='settings_layout' style='height:20px'>Change layout</button>
 			<div id='settings' style='position: -webkit-sticky; position: sticky; top: 0; background-color: white; border-style: solid;'>
-				<form id='damage_rolls_form' onsubmit='print_data();'>
+				<button onclick='reset()' id='reset_button' style='height:20px'>Reset</button>
+				<button onclick='toggle_element("raw_encounters_data")' id='raw_encounters_data_button' style='height:20px'>Hide raw encounters data</button>
+				<button onclick='toggle_element("settings")' id='settings_button' style='height:20px'>Hide settings</button>
+				<button onclick='change_layout()' id='settings_layout' style='height:20px'>Change layout</button>
+				<form id='damage_rolls_form' onsubmit='initialize_encounters_data();'>
 					<label for='auron1'>Auron 1</label>
 					<input type='number' id='auron1' name='auron1' min='260' max='588'>
 					<label for='tidus1'>Tidus 1</label>
@@ -384,22 +375,41 @@
 					<textarea id='page_link_textarea' rows='4' cols='60' readOnly='true'></textarea>
 				</div>
 				<div id='settings_sentry_div' style='display: none;'>
-						<input type='checkbox' id='settings_sentry' name='settings_sentry' oninput='get_data(current_seed)' checked>
+						<input type='checkbox' id='settings_sentry' name='settings_sentry' oninput='get_encounters_data(current_encounters_seed)' checked>
 						<label for='settings_sentry'>Sentry</label><br>
 				</div>
+				<div id='settings_nsg_div' style='display: none;'>
+					<script type="text/javascript">
+						function nsg_checkbox_function() {
+							if (document.getElementById('settings_nsg').checked) {
+								sliders_array['Lord Ochu (Way In)'].slider.max = 150;
+							} else {
+								sliders_array['Lord Ochu (Way In)'].slider.max = 1;
+							}
+						}
+					</script>
+					<input type='checkbox' id='settings_nsg' name='settings_nsg' oninput='nsg_checkbox_function()'>
+					<label for='settings_nsg'>No Sphere Grid</label><br>
+				</div>
 				<div id='settings_thunder_plains_stones_div' style='display: none;'>
-					<input type='range' id='thunder_plains_stones' name='thunder_plains_stones' min='0' max='3' oninput='get_data(current_seed)'>
+					<script type="text/javascript">
+						function thunder_plains_slider_function() {
+							get_encounters_data(current_encounters_seed)
+							document.getElementById('thunder_plains_stones_counter').innerHTML = document.getElementById('thunder_plains_stones').value.padStart(2, ' ')
+						}
+					</script>
+					<pre id='thunder_plains_stones_counter' style='display: inline-block'>0</pre>
+					<input type='range' id='thunder_plains_stones' name='thunder_plains_stones' min='0' max='3' oninput='thunder_plains_slider_function()'>
 					<label for='thunder_plains_stones'>Thunder Plains Stones Activated</label>
-					
 				</div>
 			</div>
 		</div>
 		<div style='display: grid; grid-template-columns: 1fr 1fr 1fr 100fr; column-gap: 4px;'>
 			<div>
-				<pre id='raw_data'></pre>
+				<pre id='raw_encounters_data'></pre>
 			</div>
 			<div>
-				<pre id='full_data'></pre>
+				<pre id='full_encounters_data'></pre>
 			</div>
 			<div id='sliders' style='position: sticky; bottom: 20px; grid-row-start: 2; grid-column-start: 3; display: none;'>
 				<script type='text/javascript'>
@@ -407,7 +417,7 @@
 						'Underwater Ruins':				{min:0, default:1, max:1},
 						'Besaid Lagoon':				{min:0, default:2, max:4},
 						'Besaid Road':					{min:0, default:0, max:1},
-						'Lord Ochu (Way In)':			{min:0, default:0, max:150},
+						'Lord Ochu (Way In)':			{min:0, default:0, max:1},
 						'Kilika Woods (Way In)':		{min:0, default:2, max:6},
 						'Lord Ochu (Way Out)':			{min:0, default:0, max:1},
 						'Kilika Woods (Way Out)':		{min:0, default:4, max:6},
@@ -454,7 +464,7 @@
 						sliders_array[key].slider.min = sliders_array[key].min;
 						sliders_array[key].slider.value = sliders_array[key].default;
 						sliders_array[key].slider.max = sliders_array[key].max;
-						sliders_array[key].slider.oninput = function () {get_data(current_seed); sliders_array[key].counter.innerHTML = this.value.padStart(2, ' ');};
+						sliders_array[key].slider.oninput = function () {get_encounters_data(current_encounters_seed); sliders_array[key].counter.innerHTML = this.value.padStart(2, ' ');};
 						sliders_array[key].label = document.createElement('pre');
 						sliders_array[key].label.innerHTML = key;
 						div.appendChild(sliders_array[key].parent);
@@ -479,7 +489,7 @@
 						url_params.has('tidus2') &&
 						url_params.has('auron3') &&
 						url_params.has('tidus3')) {
-						print_data();
+						initialize_encounters_data();
 					}
 				</script>
 			</div>
@@ -495,7 +505,7 @@
 						selected_area--;
 					}
 					selected_area = (selected_area < 0) ? 0 : ((selected_area > areas.length) ? areas.length : selected_area);
-					get_data(current_seed);
+					get_encounters_data(current_encounters_seed);
 				}
 				function add_remove_encounters(add) {
 					let current_slider = sliders_array[areas[selected_area]].slider;
@@ -504,16 +514,16 @@
 					} else {
 						current_slider.value = current_slider.value - 1;
 					}
-					get_data(current_seed);
+					get_encounters_data(current_encounters_seed);
 				}
 			</script>
-			<button onclick='change_area(next=false)' id='reset_button' style='height:10vw; width: 10vw'><</button>
+			<button onclick='change_area(next=false)' id='reset_button' style='height:10vw; width: 10vw; max-width: 100px; max-height: 100px'><</button>
 			<pre style='display: inline-block'>Area</pre>
-			<button onclick='change_area(next=true)' id='reset_button' style='height:10vw; width: 10vw; display: inline-block;'>></button>
-			<button onclick='toggle_element("settings")' id='settings_button_vertical' style='height:10vw; width: 10vw'>⚙</button>
-			<button onclick='add_remove_encounters(add=false)' id='reset_button' style='height:10vw; width: 10vw'>-</button>
+			<button onclick='change_area(next=true)' id='reset_button' style='height:10vw; width: 10vw; max-width: 100px; max-height: 100px; display: inline-block;'>></button>
+			<button onclick='toggle_element("settings")' id='settings_button_vertical' style='height:10vw; width: 10vw; max-width: 100px; max-height: 100px'>⚙</button>
+			<button onclick='add_remove_encounters(add=false)' id='reset_button' style='height:10vw; width: 10vw; max-width: 100px; max-height: 100px'>-</button>
 			<pre style='display: inline-block'>Encounters</pre>
-			<button onclick='add_remove_encounters(add=true)' id='reset_button' style='height:10vw; width: 10vw'>+</button>
+			<button onclick='add_remove_encounters(add=true)' id='reset_button' style='height:10vw; width: 10vw; max-width: 100px; max-height: 100px'>+</button>
 		</div>
 	</body>
 </html>
