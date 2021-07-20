@@ -254,8 +254,10 @@
 				add_forced_encounters(['Machina 1', 'Machina 2', 'Machina 3', 'Oblitzerator', 'Sahagin Chiefs', 'Vouivre', 'Garuda', 'Pierce tutorial']);
 				add_random_encounters('Miihen Screen 1');
 				add_random_encounters('Miihen Screen 2/3');
+				add_optional_forced_encounters('Simulation (Miihen)');
 				add_forced_encounters(['Chocobo Eater']);
 				add_random_encounters('Old Road');
+				add_optional_forced_encounters('Simulation (Old Road)');
 				add_random_encounters('Clasko Skip Screen');
 				add_random_encounters('MRR - Valley');
 				add_random_encounters('MRR - Precipice');
@@ -423,7 +425,9 @@
 						'Kilika Woods (Way Out)':		{min:0, default:4, max:6},
 						'Miihen Screen 1':				{min:0, default:3, max:6},
 						'Miihen Screen 2/3':			{min:0, default:8, max:12},
+						'Simulation (Miihen)':			{min:0, default:0, max:1},
 						'Old Road':						{min:0, default:3, max:8},
+						'Simulation (Old Road)':		{min:0, default:0, max:1},
 						'Clasko Skip Screen':			{min:0, default:2, max:3},
 						'MRR - Valley':					{min:0, default:5, max:10},
 						'MRR - Precipice':				{min:0, default:1, max:3},
@@ -504,7 +508,7 @@
 					} else {
 						selected_area--;
 					}
-					selected_area = (selected_area < 0) ? 0 : ((selected_area > areas.length) ? areas.length : selected_area);
+					selected_area = (selected_area < 0) ? 0 : ((selected_area >= areas.length) ? areas.length - 1 : selected_area);
 					get_encounters_data(current_encounters_seed);
 				}
 				function add_remove_encounters(add) {
