@@ -201,6 +201,14 @@
 					rng_position = rng_position + 1;
 				}
 			}
+			function add_simulation_encounters(encounter_name, initiative=false) {
+				let encounters = document.getElementById(encounter_name).value;
+				for (let i = 0; i < encounters; i++) {
+					let encounter = `${encounter_name} [${i + 1}]`;
+					full_encounters_data = `${full_encounters_data}${encounter}\n`;
+					rng_position = rng_position + 1;
+				}
+			}
 			function add_random_encounters(zone, initiative=false) {
 				let encounters = document.getElementById(zone).value;
 				if (zone == 'Thunder Plains (South)') {
@@ -254,10 +262,10 @@
 				add_forced_encounters(['Machina 1', 'Machina 2', 'Machina 3', 'Oblitzerator', 'Sahagin Chiefs', 'Vouivre', 'Garuda', 'Pierce tutorial']);
 				add_random_encounters('Miihen Screen 1');
 				add_random_encounters('Miihen Screen 2/3');
-				add_optional_forced_encounters('Simulation (Miihen)');
+				add_simulation_encounters('Simulation (Miihen)');
 				add_forced_encounters(['Chocobo Eater']);
 				add_random_encounters('Old Road');
-				add_optional_forced_encounters('Simulation (Old Road)');
+				add_simulation_encounters('Simulation (Old Road)');
 				add_random_encounters('Clasko Skip Screen');
 				add_random_encounters('MRR - Valley');
 				add_random_encounters('MRR - Precipice');
